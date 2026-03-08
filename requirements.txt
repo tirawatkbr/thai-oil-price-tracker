@@ -1,0 +1,7 @@
+# Thai Oil Price Scraper — Python dependencies
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.1.0
+gspread==6.0.2
+google-auth==2.27.0
+playwright>=1.40.0
