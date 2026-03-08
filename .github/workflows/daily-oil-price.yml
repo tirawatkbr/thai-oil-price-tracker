@@ -1,11 +1,8 @@
 name: 🛢️ Daily Oil Price Update
 
 on:
-  # ── Auto: 06:05 AM Thailand time (UTC+7 = 23:05 UTC previous day)
   schedule:
-    - cron: "5 23 * * *"
-
-  # ── Manual trigger from GitHub Actions tab
+    - cron: "5 23 * * *"   # 06:05 AM Thailand time (UTC+7 → 23:05 UTC)
   workflow_dispatch:
     inputs:
       force_update:
@@ -16,46 +13,39 @@ on:
 
 jobs:
   scrape-and-deploy:
-    name: Scrape Oil Prices & Update Data
+    name: Scrape Oil Prices
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     permissions:
-      contents: write   # needed to commit prices.json back to repo
+      contents: write
 
     steps:
-      # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 2. Python setup ────────────────────────────────────────────────────
       - name: 🐍 Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
 
-      # ── 3. Install Python deps ─────────────────────────────────────────────
       - name: 📦 Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ── 4. Install Playwright browser ─────────────────────────────────────
-      - name: 🌐 Install Playwright Chromium
+      - name: 🌐 Install Playwright Chromium (for Shell)
         run: playwright install chromium --with-deps
+        continue-on-error: true   # Shell is optional — other sources still run
 
-      # ── 5. Run scraper ─────────────────────────────────────────────────────
       - name: 🔍 Scrape oil prices
         env:
           GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
           GOOGLE_SHEET_NAME: ${{ secrets.GOOGLE_SHEET_NAME }}
-        run: |
-          python scripts/scraper.py
+        run: python scripts/scraper.py
 
-      # ── 6. Commit updated data files ────────────────────────────────────────
       - name: 💾 Commit price data
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -67,8 +57,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 7. Job summary ──────────────────────────────────────────────────────
-      - name: 📊 Write job summary
+      - name: 📊 Job summary
         run: |
           {
             echo "### 🛢️ อัปเดตราคาน้ำมันสำเร็จ"
@@ -79,17 +68,12 @@ jobs:
             echo "| ⏰ เวลา   | $(TZ='Asia/Bangkok' date +'%H:%M น.') |"
             if [ -f prices.json ]; then
               echo "| 📦 prices.json | $(wc -c < prices.json | tr -d ' ') bytes |"
-              BRAND_COUNT=$(python3 -c "import json; d=json.load(open('prices.json')); print(len(d['brands']))" 2>/dev/null || echo "?")
-              echo "| 🏪 แบรนด์ | ${BRAND_COUNT} |"
+              BRANDS=$(python3 -c "import json; d=json.load(open('prices.json')); print(', '.join(d['brands']))" 2>/dev/null || echo "?")
+              echo "| 🏪 แบรนด์ | ${BRANDS} |"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # ── 8. Alert on failure ────────────────────────────────────────────────
       - name: 🚨 Failure summary
         if: failure()
         run: |
-          {
-            echo "### ❌ Scraper ล้มเหลว"
-            echo ""
-            echo "กรุณาตรวจสอบ logs ด้านบน"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "### ❌ Scraper ล้มเหลว — ตรวจสอบ logs ด้านบน" >> "$GITHUB_STEP_SUMMARY"
