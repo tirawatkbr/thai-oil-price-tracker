@@ -1,39 +1,36 @@
 """
-Thai Oil Price Scraper
-======================
-ดึงราคาน้ำมันจาก Official Sources รายแบรนด์:
+Thai Oil Price Scraper — Final Architecture
+============================================
 
-  Brand          Source                                          Method
-  ─────────────  ──────────────────────────────────────────────  ──────────
-  PTT            orapiweb.pttor.com  (SOAP XML)                  SOAP
-  BCP            oil-price.bangchak.co.th  (JSON REST)           REST
-  Shell          shell.co.th  (Playwright Shadow DOM)            Browser
-  Caltex         caltex.com/th  (HTML)                           Scrape
-  IRPC/PT/Susco  gasprice.kapook.com  (EPPO mirror)             Scrape
-  Pure           gasprice.kapook.com                             Scrape
-  Fallback       api.chnwt.dev/thai-oil-api                      REST
+แหล่งข้อมูล (เรียงตาม priority):
 
-Output:
-  prices.json         — current prices (GitHub Pages reads this)
-  price_history.json  — rolling 90-day history
-  Google Sheets       — optional, via GOOGLE_CREDENTIALS_JSON secret
+  ┌──────────┬──────────────────────────────────────────────────────┬──────────────┐
+  │ แบรนด์   │ Source                                               │ ประเภท      │
+  ├──────────┼──────────────────────────────────────────────────────┼──────────────┤
+  │ PTT      │ orapiweb.pttor.com/oilservice/OilPrice.asmx          │ SOAP XML ✅  │
+  │ BCP      │ oil-price.bangchak.co.th/ApiOilPrice2/en             │ JSON REST ✅ │
+  │ Shell    │ shell.co.th/.../app-fuel-prices.html                 │ HTML scrape  │
+  │ Caltex   │ caltex.com/th/.../fuel-prices.html                   │ HTML scrape  │
+  │ Others   │ gasprice.kapook.com/gasprice.php (ข้อมูลจาก EPPO)   │ HTML scrape  │
+  │ Fallback │ api.chnwt.dev/thai-oil-api/latest                    │ JSON REST    │
+  └──────────┴──────────────────────────────────────────────────────┴──────────────┘
+
+หมายเหตุ:
+  - EPPO ไม่มี public REST API สำหรับ retail price by brand
+  - Kapook คือ mirror HTML ของข้อมูล EPPO
+  - PTT/BCP/Shell/Caltex ดึงจาก official source โดยตรง → แม่นยำกว่า Kapook
+  - Esso: ถูกตัดออกตามที่กำหนด
+
+Output: prices.json, price_history.json, Google Sheets
 """
 
-from __future__ import annotations
-
-import json
-import logging
-import os
-import re
-import time
-import xml.etree.ElementTree as ET
+import os, json, re, logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
+import xml.etree.ElementTree as ET
 import requests
 from bs4 import BeautifulSoup
 
-# ── Optional dependencies ─────────────────────────────────────────────────────
 try:
     import gspread
     from google.oauth2.service_account import Credentials
@@ -41,24 +38,13 @@ try:
 except ImportError:
     HAS_GSPREAD = False
 
-try:
-    from playwright.sync_api import sync_playwright
-    HAS_PLAYWRIGHT = True
-except ImportError:
-    HAS_PLAYWRIGHT = False
-
-# ══════════════════════════════════════════════════════════════════════════════
-# CONFIG
-# ══════════════════════════════════════════════════════════════════════════════
-
-TZ        = ZoneInfo("Asia/Bangkok")
-NOW       = datetime.now(TZ)
-TODAY     = NOW.strftime("%Y-%m-%d")
-TIMESTAMP = NOW.strftime("%Y-%m-%d %H:%M:%S")
-
-PRICES_JSON  = "prices.json"
+# ── Config ────────────────────────────────────────────────────────────────────
+TZ         = ZoneInfo("Asia/Bangkok")
+TODAY      = datetime.now(TZ).strftime("%Y-%m-%d")
+TIMESTAMP  = datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
+SHEET_NAME = os.environ.get("GOOGLE_SHEET_NAME", "Thai Oil Prices")
+PRICES_JSON = "prices.json"
 HISTORY_JSON = "price_history.json"
-SHEET_NAME   = os.environ.get("GOOGLE_SHEET_NAME", "Thai Oil Prices")
 
 HEADERS = {
     "User-Agent": (
@@ -70,862 +56,779 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
-REQUEST_TIMEOUT = 20  # seconds
-
-# ══════════════════════════════════════════════════════════════════════════════
-# OUTPUT SCHEMA
-# ══════════════════════════════════════════════════════════════════════════════
-#
-#  prices.json structure:
-#  {
-#    "updated": "2024-03-05 06:05:00",
-#    "date": "2024-03-05",
-#    "brands": ["PTT", "BCP", "Shell", ...],
-#    "oil_groups": [
-#      {
-#        "family": "g95",
-#        "oils": [
-#          {
-#            "key": "แก๊สโซฮอล์_95",
-#            "entries": {
-#              "PTT":   {"name": "แก๊สโซฮอล์ 95", "price": 30.55},
-#              "Shell": {"name": "เชลล์ ฟิวเซฟ แก๊สโซฮอล์ 95", "price": 31.85},
-#              ...
-#            }
-#          }
-#        ]
-#      },
-#      ...
-#    ],
-#    "prices": { "แก๊สโซฮอล์_95": {"PTT": 30.55, ...} }  ← flat legacy index
-#  }
-
-# Canonical family order for output
-FAMILY_ORDER = [
-    "benzene95",
-    "g95_super",
-    "g95_vpower",
-    "g95_premium",
-    "g95",
-    "g91",
-    "e20",
-    "e85",
-    "ngv",
-    "diesel_vpower",
-    "diesel_fuelsave",
-    "diesel_premium",
-    "diesel_b7",
-    "diesel",
-    "other",
-]
-
-ALL_BRANDS = [
-    "PTT", "BCP", "Shell", "Caltex",
-    "IRPC", "PT", "Susco", "Pure", "Susco Dealers",
-]
-
-# ══════════════════════════════════════════════════════════════════════════════
-# LOGGING
-# ══════════════════════════════════════════════════════════════════════════════
-
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(message)s",
+    format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
 )
-log = logging.getLogger("oil-scraper")
+log = logging.getLogger(__name__)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# DATA STORE
+# OIL FAMILY RULES
+# จัดกลุ่มน้ำมันให้แสดงติดกัน — เรียงจาก specific → general เสมอ
 # ══════════════════════════════════════════════════════════════════════════════
+OIL_FAMILY_RULES: list[tuple[str, str, int]] = [
+    # (regex_pattern, family_id, sort_order)
+    # เบนซิน (ไม่ผสมเอทานอล)
+    (r"เบนซิน",                                      "benzene95",       0),
+    # G95 — premium brand names ก่อน แล้วค่อยเป็น standard
+    (r"ซูเปอร์พาวเวอร์|super.?power",               "g95_super",      10),
+    (r"วี.?เพาเวอร์.*95|v.?power.*95",              "g95_vpower",     11),
+    (r"95.*พรีเมียม|premium.*95|hi.*premium.*97",    "g95_premium",    12),
+    (r"แก๊สโซฮอล์ 95|gasohol.?95",                 "g95",            14),
+    # G91
+    (r"แก๊สโซฮอล์ 91|gasohol.?91",                 "g91",            20),
+    # E20, E85
+    (r"e20",                                          "e20",            30),
+    (r"e85",                                          "e85",            40),
+    # NGV
+    (r"ngv",                                          "ngv",            50),
+    # Diesel — premium ก่อน แล้ว B7 แล้ว B20 แล้ว regular
+    (r"วี.?เพาเวอร์.*ดีเซล|v.?power.*diesel",       "diesel_vpower",  60),
+    (r"ฟิวเซฟ|fuelsave",                             "diesel_fuelsave",61),
+    (r"ดีเซลพรีเมียม|ดีเซลพรีเมี่ยม|hi.?premium.?diesel","diesel_premium",62),
+    (r"ดีเซล b7|diesel.?b7|hi.?diesel\b",           "diesel_b7",      63),
+    (r"ดีเซลหมุนเร็ว b20|b20",                       "diesel_b20",     64),
+    (r"ดีเซล\b",                                      "diesel",         65),
+]
 
-class OilData:
-    """
-    Centralised in-memory store.
+def get_family(name: str) -> tuple[str, int]:
+    """คืน (family_id, sort_order) จากชื่อน้ำมัน"""
+    n = name.lower().strip()
+    for pattern, fid, order in OIL_FAMILY_RULES:
+        if re.search(pattern, n, re.IGNORECASE):
+            return fid, order
+    return "other", 999
 
-    Internal structure:
-        store[family][oil_key][brand] = {
-            "name": str,
-            "price": float,
-            "price_tomorrow": float | None,
-        }
-    """
-
-    def __init__(self):
-        self.store: dict[str, dict[str, dict[str, dict]]] = {}
-
-    def add(
-        self,
-        family: str,
-        oil_key: str,
-        brand: str,
-        name: str,
-        price: float,
-        price_tomorrow: float | None = None,
-    ) -> None:
-        self.store.setdefault(family, {}).setdefault(oil_key, {})
-        entry: dict = {"name": name, "price": price}
-        if price_tomorrow is not None:
-            entry["price_tomorrow"] = price_tomorrow
-        self.store[family][oil_key][brand] = entry
-
-    def to_json_payload(self) -> dict:
-        """Serialise to the canonical prices.json schema."""
-        oil_groups: list[dict] = []
-
-        for family in FAMILY_ORDER:
-            oils_map = self.store.get(family, {})
-            if not oils_map:
-                continue
-            oils = []
-            for key, entries in oils_map.items():
-                oils.append({"key": key, "entries": entries})
-            oil_groups.append({"family": family, "oils": oils})
-
-        # Collect brands actually present
-        brands_seen: set[str] = set()
-        for oils_map in self.store.values():
-            for entries in oils_map.values():
-                brands_seen.update(entries.keys())
-        brands = [b for b in ALL_BRANDS if b in brands_seen]
-
-        # Legacy flat prices index
-        flat: dict[str, dict[str, float]] = {}
-        for oils_map in self.store.values():
-            for key, entries in oils_map.items():
-                flat[key] = {b: v["price"] for b, v in entries.items()}
-
-        return {
-            "updated": TIMESTAMP,
-            "date": TODAY,
-            "brands": brands,
-            "oil_groups": oil_groups,
-            "prices": flat,
-        }
+def slugify(name: str) -> str:
+    """แปลงชื่อน้ำมันเป็น snake_case key"""
+    k = name.lower().strip()
+    k = re.sub(r"[^ก-๙a-z0-9]+", "_", k)
+    return k.strip("_")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SOURCE 1 — PTT  (SOAP XML)
+# SOURCE A: PTT Official SOAP API
+# URL  : orapiweb.pttor.com/oilservice/OilPrice.asmx
+# Auth : ไม่ต้องใช้ — public endpoint
+# Data : XML → PTTOR_DS/FUEL[]/PRODUCT, PRICE
 # ══════════════════════════════════════════════════════════════════════════════
-
-def fetch_ptt(db: OilData) -> bool:
-    """
-    PTT SOAP endpoint — returns today's retail prices for every PTT product.
-    """
-    url = "https://orapiweb.pttor.com/oilservice/OilPrice.asmx"
-    soap_body = """<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
-               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+_PTT_SOAP_URL = "https://orapiweb.pttor.com/oilservice/OilPrice.asmx"
+_PTT_SOAP_BODY = """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
-    <GetOilPrice2 xmlns="http://tempuri.org/">
-      <Lang>2</Lang>
-    </GetOilPrice2>
+    <CurrentOilPrice xmlns="http://www.pttor.com/" />
   </soap:Body>
 </soap:Envelope>"""
-    headers = {
-        **HEADERS,
-        "Content-Type": "text/xml; charset=utf-8",
-        "SOAPAction": '"http://tempuri.org/GetOilPrice2"',
-    }
+
+def fetch_ptt() -> dict:
+    log.info("  [PTT] Official SOAP API...")
     try:
-        r = requests.post(url, data=soap_body.encode("utf-8"), headers=headers, timeout=REQUEST_TIMEOUT)
+        r = requests.post(
+            _PTT_SOAP_URL,
+            data=_PTT_SOAP_BODY.encode("utf-8"),
+            headers={
+                **HEADERS,
+                "Content-Type": "text/xml; charset=utf-8",
+                "SOAPAction": "http://www.pttor.com/CurrentOilPrice",
+            },
+            timeout=20,
+        )
         r.raise_for_status()
-        root = ET.fromstring(r.content)
-        ns   = {"s": "http://schemas.xmlsoap.org/soap/envelope/", "t": "http://tempuri.org/"}
 
-        # PTT XML  →  OilPriceItem with fields OilName, OilPrice, OilPriceTomorrow
-        items = root.findall(".//{http://tempuri.org/}OilPriceItem")
-        if not items:
-            # try without namespace
-            items = root.findall(".//OilPriceItem")
+        root = ET.fromstring(r.text)
 
-        count = 0
-        for item in items:
-            def txt(tag: str) -> str:
-                el = item.find(f"{{http://tempuri.org/}}{tag}") or item.find(tag)
-                return (el.text or "").strip() if el is not None else ""
+        # ดึง FUEL elements — อาจอยู่ใน inner XML string
+        fuels = root.findall(".//FUEL")
+        if not fuels:
+            for el in root.iter():
+                if el.text and "<FUEL>" in el.text:
+                    try:
+                        inner = ET.fromstring(el.text)
+                        fuels = inner.findall(".//FUEL")
+                        break
+                    except ET.ParseError:
+                        pass
 
-            raw_name = txt("OilName") or txt("GoodsName") or txt("Name")
-            raw_price = txt("OilPrice") or txt("Price") or txt("RetailPrice")
-            raw_tomorrow = txt("OilPriceTomorrow") or txt("PriceTomorrow") or ""
-
-            if not raw_name or not raw_price:
+        oils: dict = {}
+        for fuel in fuels:
+            name = (fuel.findtext("PRODUCT") or "").strip()
+            price_str = (fuel.findtext("PRICE") or "").strip()
+            if not name or not price_str:
                 continue
             try:
-                price = float(raw_price.replace(",", ""))
+                price = float(price_str.replace(",", ""))
             except ValueError:
                 continue
-            tomorrow: float | None = None
-            try:
-                tomorrow = float(raw_tomorrow.replace(",", ""))
-            except ValueError:
-                pass
+            if price <= 0:
+                continue
+            family, order = get_family(name)
+            key = slugify(name)
+            oils[key] = {"name": name, "price": price, "family": family, "order": order}
+            log.info(f"    ✓ PTT | {name:38} {price:6.2f} [{family}]")
 
-            family, key = _ptt_classify(raw_name)
-            if family:
-                db.add(family, key, "PTT", raw_name, price, tomorrow)
-                count += 1
+        log.info(f"  {'✅' if oils else '⚠️ '} PTT SOAP: {len(oils)} รายการ")
+        return oils
 
-        log.info(f"PTT SOAP  ✓  {count} products")
-        return count > 0
-
-    except Exception as exc:
-        log.warning(f"PTT SOAP  ✗  {exc}")
-        return False
-
-
-def _ptt_classify(name: str) -> tuple[str, str]:
-    """Map PTT product name → (family, key)."""
-    n = name.lower()
-    key = name.replace(" ", "_")
-
-    if "เบนซิน" in n and "95" in n:
-        return "benzene95", "เบนซิน_95"
-    if "ซูเปอร์พาวเวอร์" in n or "super power" in n:
-        return "g95_super", "ซูเปอร์พาวเวอร์_แก๊สโซฮอล์_95"
-    if "95 พรีเมียม" in n or "premium 95" in n:
-        return "g95_premium", "แก๊สโซฮอล์_95_พรีเมียม"
-    if ("แก๊สโซฮอล์" in n or "gasohol" in n) and "95" in n:
-        return "g95", "แก๊สโซฮอล์_95"
-    if ("แก๊สโซฮอล์" in n or "gasohol" in n) and "91" in n:
-        return "g91", "แก๊สโซฮอล์_91"
-    if "e20" in n:
-        return "e20", "แก๊สโซฮอล์_e20"
-    if "e85" in n:
-        return "e85", "แก๊สโซฮอล์_e85"
-    if "ngv" in n:
-        return "ngv", "แก๊ส_ngv"
-    if "ดีเซลพรีเมียม" in n or "diesel premium" in n or "ดีเซล พรีเมียม" in n:
-        return "diesel_premium", "ดีเซลพรีเมียม"
-    if "ดีเซล" in n and "b7" in n:
-        return "diesel_b7", "ดีเซล_b7"
-    if "ดีเซล" in n:
-        return "diesel", "ดีเซล"
-    return "", ""
+    except Exception as e:
+        log.warning(f"  ⚠️  PTT SOAP ล้มเหลว: {e}")
+        return {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SOURCE 2 — BCP Bangchak  (JSON REST)
+# SOURCE B: BCP Official JSON API
+# URL  : oil-price.bangchak.co.th/ApiOilPrice2/en
+# Auth : ไม่ต้องใช้ — public endpoint ที่ BCP เปิดให้ embed
+# Data : JSON → OilList[]{OilName, PriceToday, PriceTomorrow}
+# พิเศษ: มีราคาพรุ่งนี้ด้วย!
 # ══════════════════════════════════════════════════════════════════════════════
-
-def fetch_bcp(db: OilData) -> bool:
-    """
-    BCP official JSON API — returns today + tomorrow prices.
-    Endpoint: oil-price.bangchak.co.th/ApiOilPrice2/en
-    """
-    url = "https://oil-price.bangchak.co.th/ApiOilPrice2/en"
+def fetch_bcp() -> dict:
+    log.info("  [BCP] Official JSON API...")
     try:
-        r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        r = requests.get(
+            "https://oil-price.bangchak.co.th/ApiOilPrice2/en",
+            headers=HEADERS,
+            timeout=15,
+        )
         r.raise_for_status()
         data = r.json()
+        item = data[0] if isinstance(data, list) else data
 
-        # data may be list or {"OilPrices": [...]}
-        items = data if isinstance(data, list) else data.get("OilPrices", data.get("oilprices", []))
+        raw_list = item.get("OilList", "[]")
+        oil_list: list = json.loads(raw_list) if isinstance(raw_list, str) else raw_list
 
-        count = 0
-        for item in items:
-            raw_name = (
-                item.get("OilName") or item.get("Name") or
-                item.get("product_name") or item.get("ProductName") or ""
-            ).strip()
-            raw_price = str(
-                item.get("Price") or item.get("OilPrice") or
-                item.get("price") or item.get("CurrentPrice") or ""
-            ).strip()
-            raw_tomorrow = str(
-                item.get("PriceTomorrow") or item.get("TomorrowPrice") or
-                item.get("price_tomorrow") or ""
-            ).strip()
-
-            if not raw_name or not raw_price:
-                continue
+        oils: dict = {}
+        for oil in oil_list:
+            name = oil.get("OilName", "").strip()
             try:
-                price = float(raw_price.replace(",", ""))
-            except ValueError:
+                price_today = float(oil.get("PriceToday", 0))
+                price_tmr   = float(oil.get("PriceTomorrow", price_today))
+            except (ValueError, TypeError):
                 continue
-            tomorrow: float | None = None
-            try:
-                tomorrow = float(raw_tomorrow.replace(",", ""))
-            except ValueError:
-                pass
+            if not name or price_today <= 0:
+                continue
+            family, order = get_family(name)
+            key = slugify(name)
+            oils[key] = {
+                "name": name,
+                "price": price_today,
+                "price_tomorrow": price_tmr,
+                "family": family,
+                "order": order,
+            }
+            diff = f" → พรุ่งนี้ {price_tmr:.2f}" if price_tmr != price_today else ""
+            log.info(f"    ✓ BCP | {name:38} {price_today:6.2f}{diff} [{family}]")
 
-            family, key = _bcp_classify(raw_name)
-            if family:
-                db.add(family, key, "BCP", raw_name, price, tomorrow)
-                count += 1
+        log.info(f"  {'✅' if oils else '⚠️ '} BCP API: {len(oils)} รายการ")
+        return oils
 
-        log.info(f"BCP JSON  ✓  {count} products")
-        return count > 0
-
-    except Exception as exc:
-        log.warning(f"BCP JSON  ✗  {exc}")
-        return False
-
-
-def _bcp_classify(name: str) -> tuple[str, str]:
-    n = name.lower()
-    key = name.replace(" ", "_")
-
-    if "hi premium 97" in n or "premium 97" in n:
-        return "g95_premium", "hi_premium_97_gasohol_95"
-    if "gasohol 95" in n and "s evo" in n:
-        return "g95", "gasohol_95_s_evo"
-    if "gasohol 91" in n and "s evo" in n:
-        return "g91", "gasohol_91_s_evo"
-    if "gasohol e20" in n or "e20 s evo" in n:
-        return "e20", "gasohol_e20_s_evo"
-    if "gasohol e85" in n or "e85 s evo" in n:
-        return "e85", "gasohol_e85_s_evo"
-    if "hi premium diesel" in n:
-        return "diesel_premium", "hi_premium_diesel_s"
-    if "hi diesel" in n:
-        return "diesel_b7", "hi_diesel_s"
-    return "", ""
+    except Exception as e:
+        log.warning(f"  ⚠️  BCP API ล้มเหลว: {e}")
+        return {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SOURCE 3 — Shell  (Playwright headless browser)
+# SOURCE C: Shell Official — Playwright (Shadow DOM)
+# URL    : shell.co.th/th_th/customer/fuels-and-lubricants/fuels/fuel-price.html
+# ราคาอยู่ใน Shadow DOM ของ custom element <standalone-table>
+# BeautifulSoup/requests เข้าไม่ถึง — ต้องใช้ Playwright render JS ก่อน
+#
+# โครงสร้าง Shadow DOM:
+#   <standalone-table>
+#     #shadow-root
+#       <table>
+#         <tr><td>เชลล์ ฟิวเซฟ แก๊สโซฮอล์ E20</td><td>29.44</td></tr>
+#         ...
+#
+# ชื่อน้ำมัน Shell:
+#   เชลล์ ฟิวเซฟ แก๊สโซฮอล์ E20, เชลล์ ฟิวเซฟ แก๊สโซฮอล์ 91,
+#   เชลล์ ฟิวเซฟ แก๊สโซฮอล์ 95, เชลล์ วี-เพาเวอร์ แก๊สโซฮอล์ 95,
+#   เชลล์ ฟิวเซฟ ดีเซล, เชลล์ วี-เพาเวอร์ ดีเซล
 # ══════════════════════════════════════════════════════════════════════════════
+_SHELL_URL = "https://www.shell.co.th/th_th/customer/fuels-and-lubricants/fuels/fuel-price.html"
 
-def fetch_shell(db: OilData) -> bool:
-    """
-    Shell Thailand uses Shadow DOM — requires Playwright to evaluate JS.
-    URL: https://www.shell.co.th/th_TH/motorists/shell-fuels/app-fuel-prices.html
-    """
-    if not HAS_PLAYWRIGHT:
-        log.warning("Shell      ✗  playwright not installed")
-        return False
+_SHELL_JS = """
+() => {
+    const el = document.querySelector('standalone-table');
+    if (!el || !el.shadowRoot) return [];
+    const rows = el.shadowRoot.querySelectorAll('tr');
+    const data = [];
+    rows.forEach(row => {
+        const tds = row.querySelectorAll('td');
+        if (tds.length >= 2) {
+            const name = tds[0].innerText.trim().replace(/:$/, '').trim();
+            const price = tds[1].innerText.trim();
+            if (name && price) data.push({name, price});
+        }
+    });
+    return data;
+}
+"""
 
-    url = "https://www.shell.co.th/th_TH/motorists/shell-fuels/app-fuel-prices.html"
+def fetch_shell() -> dict:
+    log.info("  [Shell] Playwright (Shadow DOM)...")
     try:
-        with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True)
-            page    = browser.new_page()
-            page.goto(url, wait_until="networkidle", timeout=60_000)
-            page.wait_for_timeout(3000)
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        log.warning("  ⚠️  playwright ไม่ได้ติดตั้ง — ข้าม Shell (จะใช้ Kapook)")
+        return {}
 
-            raw = page.evaluate("""() => {
-                const results = [];
-                const hosts = document.querySelectorAll('*');
-                for (const el of hosts) {
-                    if (el.shadowRoot) {
-                        const items = el.shadowRoot.querySelectorAll(
-                            '.fuel-price-item, [class*="price-row"], [class*="fuel-item"]'
-                        );
-                        items.forEach(item => {
-                            const name  = item.querySelector(
-                                '[class*="name"], [class*="title"], h3, h4, p'
-                            )?.innerText?.trim();
-                            const price = item.querySelector(
-                                '[class*="price"], [class*="amount"], strong, span'
-                            )?.innerText?.trim();
-                            if (name && price) results.push({name, price});
-                        });
-                    }
-                }
-                return results;
-            }""")
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page(
+                user_agent=HEADERS["User-Agent"],
+                extra_http_headers={"Accept-Language": "th-TH,th;q=0.9"}
+            )
+            page.goto(_SHELL_URL, wait_until="networkidle", timeout=30000)
+            # รอ shadow DOM โหลด
+            page.wait_for_selector("standalone-table", timeout=15000)
+            raw = page.evaluate(_SHELL_JS)
             browser.close()
 
-        count = 0
-        for item in (raw or []):
-            raw_name  = (item.get("name")  or "").strip()
-            raw_price = (item.get("price") or "").strip()
-            m = re.search(r"[\d]+\.[\d]+", raw_price.replace(",", ""))
-            if not raw_name or not m:
+        if not raw:
+            log.warning("  ⚠️  Shell Shadow DOM ว่าง — จะใช้ Kapook")
+            return {}
+
+        oils: dict = {}
+        for item in raw:
+            name = item["name"]
+            price_text = item["price"]
+            m = re.search(r"(\d{2,3}\.\d{2})", price_text)
+            if not m:
                 continue
             try:
-                price = float(m.group())
+                price = float(m.group(1))
             except ValueError:
                 continue
-            family, key = _shell_classify(raw_name)
-            if family:
-                db.add(family, key, "Shell", raw_name, price)
-                count += 1
+            if price <= 0 or price > 200:
+                continue
+            family, order = get_family(name)
+            key = slugify(name)
+            if key and key not in oils:
+                oils[key] = {"name": name, "price": price, "family": family, "order": order}
+                log.info(f"    ✓ Shell | {name:38} {price:6.2f} [{family}]")
 
-        log.info(f"Shell      ✓  {count} products")
-        return count > 0
+        log.info(f"  {'✅' if oils else '⚠️ '} Shell Playwright: {len(oils)} รายการ")
+        return oils
 
-    except Exception as exc:
-        log.warning(f"Shell      ✗  {exc}")
-        return False
-
-
-def _shell_classify(name: str) -> tuple[str, str]:
-    n = name.lower()
-    key = name.replace(" ", "_")
-
-    if "v-power" in n and "diesel" in n:
-        return "diesel_vpower", "เชลล์_วี_เพาเวอร์_ดีเซล"
-    if "fuelsave" in n and "diesel" in n or "ฟิวเซฟ" in n and "ดีเซล" in n:
-        return "diesel_fuelsave", "เชลล์_ฟิวเซฟ_ดีเซล"
-    if ("v-power" in n or "วี-เพาเวอร์" in n or "vpower" in n) and "95" in n:
-        return "g95_vpower", "เชลล์_วี_เพาเวอร์_แก๊สโซฮอล์_95"
-    if ("fuelsave" in n or "ฟิวเซฟ" in n) and "95" in n:
-        return "g95", "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_95"
-    if ("fuelsave" in n or "ฟิวเซฟ" in n) and "91" in n:
-        return "g91", "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_91"
-    if ("fuelsave" in n or "ฟิวเซฟ" in n) and "e20" in n:
-        return "e20", "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_e20"
-    return "", ""
+    except Exception as e:
+        log.warning(f"  ⚠️  Shell Playwright ล้มเหลว: {e} — จะใช้ Kapook")
+        return {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SOURCE 4 — Caltex  (HTML scrape)
+# SOURCE D: Caltex Official HTML
+# URL  : caltex.com/th/motorists/products-and-services/fuel-prices.html
+# โครงสร้าง: ราคาฝังตรงใน HTML
+# ชื่อน้ำมัน: โกลด์ 95 เทครอน®, แก๊สโซฮอล์ 95 เทครอน®, แก๊สโซฮอล์ 91 เทครอน®,
+#            แก๊สโซฮอล์ E20, ดีเซล เทครอน® ดี, พาวเวอร์ ดีเซล เทครอน® ดี
 # ══════════════════════════════════════════════════════════════════════════════
+_CALTEX_URL = "https://www.caltex.com/th/motorists/products-and-services/fuel-prices.html"
 
-def fetch_caltex(db: OilData) -> bool:
-    """
-    Caltex Thailand fuel prices page.
-    URL: https://www.caltex.com/th/th/motorists/fuel-prices.html
-    """
-    urls = [
-        "https://www.caltex.com/th/th/motorists/fuel-prices.html",
-        "https://www.caltex.com/th/th/motorists/fuels/fuel-prices.html",
-    ]
-    for url in urls:
-        try:
-            r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-            r.raise_for_status()
-            soup = BeautifulSoup(r.text, "lxml")
-
-            count = 0
-            # Look for price rows: element with fuel name + price number
-            for row in soup.find_all(["tr", "li", "div"], class_=re.compile(r"price|fuel|product", re.I)):
-                cells = row.find_all(["td", "span", "p", "div"])
-                texts = [c.get_text(strip=True) for c in cells if c.get_text(strip=True)]
-                if len(texts) < 2:
-                    continue
-                name = texts[0]
-                for t in texts[1:]:
-                    m = re.search(r"(\d+\.\d+)", t.replace(",", ""))
-                    if m:
-                        try:
-                            price = float(m.group(1))
-                            family, key = _caltex_classify(name)
-                            if family:
-                                db.add(family, key, "Caltex", name, price)
-                                count += 1
-                        except ValueError:
-                            pass
-                        break
-
-            if count > 0:
-                log.info(f"Caltex     ✓  {count} products  ({url})")
-                return True
-
-        except Exception as exc:
-            log.debug(f"Caltex url failed: {url} — {exc}")
-
-    log.warning("Caltex     ✗  all URLs failed")
-    return False
-
-
-def _caltex_classify(name: str) -> tuple[str, str]:
-    n = name.lower()
-
-    if "พาวเวอร์ ดีเซล" in n or "power diesel" in n:
-        return "diesel_premium", "พาวเวอร์_ดีเซล_เทครอน_ดี"
-    if "ดีเซล" in n or "diesel" in n:
-        return "diesel_b7", "ดีเซล_เทครอน_ดี"
-    if "โกลด์ 95" in n or "gold 95" in n:
-        return "other", "โกลด์_95_เทครอน"
-    if "95" in n:
-        return "g95", "แก๊สโซฮอล์_95_เทครอน"
-    if "91" in n:
-        return "g91", "แก๊สโซฮอล์_91_เทครอน"
-    if "e20" in n:
-        return "e20", "แก๊สโซฮอล์_e20"
-    return "", ""
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SOURCE 5 — Kapook (EPPO mirror) — covers IRPC, PT, Susco, Pure + fallback
-# ══════════════════════════════════════════════════════════════════════════════
-
-_KAPOOK_BRAND_MAP = {
-    "ptt": "PTT", "ปตท": "PTT",
-    "shell": "Shell", "เชลล์": "Shell",
-    "caltex": "Caltex", "คาลเท็กซ์": "Caltex", "คาเท็กซ์": "Caltex",
-    "bcp": "BCP", "bangchak": "BCP", "บางจาก": "BCP",
-    "irpc": "IRPC",
-    "pt": "PT", "พีที": "PT",
-    "susco": "Susco", "ซัสโก": "Susco",
-    "pure": "Pure", "เพียว": "Pure",
-    "susco dealers": "Susco Dealers",
-}
-
-_KAPOOK_OIL_MAP = {
-    "เบนซิน 95": ("benzene95", "เบนซิน_95"),
-    "แก๊สโซฮอล์ 95": ("g95", "แก๊สโซฮอล์_95"),
-    "gasohol 95": ("g95", "แก๊สโซฮอล์_95"),
-    "แก๊สโซฮอล์ 91": ("g91", "แก๊สโซฮอล์_91"),
-    "gasohol 91": ("g91", "แก๊สโซฮอล์_91"),
-    "e20": ("e20", "แก๊สโซฮอล์_e20"),
-    "e85": ("e85", "แก๊สโซฮอล์_e85"),
-    "ngv": ("ngv", "แก๊ส_ngv"),
-    "ดีเซล b7": ("diesel_b7", "ดีเซล_b7"),
-    "ดีเซลพรีเมียม": ("diesel_premium", "ดีเซลพรีเมียม"),
-    "ดีเซล": ("diesel_b7", "ดีเซล_b7"),
-}
-
-
-def fetch_kapook(db: OilData, fill_brands: list[str] | None = None) -> bool:
-    """
-    Scrape gasprice.kapook.com — EPPO-sourced data, covers all brands.
-    fill_brands: if given, only insert entries for those brands (don't overwrite official sources).
-    """
-    url = "https://gasprice.kapook.com/gasprice.php"
+def fetch_caltex() -> dict:
+    log.info("  [Caltex] Official HTML scrape...")
     try:
-        r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
-        r.encoding = "utf-8"
-        soup = BeautifulSoup(r.text, "lxml")
-        count = 0
-
-        # Kapook layout: section per brand, table rows per oil type
-        sections = soup.find_all("section", class_=re.compile(r"brand|station|oil", re.I))
-        if not sections:
-            # fallback: any div with brand logo + table
-            sections = soup.find_all("div", class_=re.compile(r"brand|station", re.I))
-
-        for section in sections:
-            # Get brand name
-            brand_el = section.find(class_=re.compile(r"brand.?name|logo.?text|station.?name", re.I))
-            if not brand_el:
-                brand_el = section.find(["h2", "h3", "h4", "strong"])
-            if not brand_el:
-                continue
-
-            raw_brand = brand_el.get_text(strip=True).lower()
-            brand = None
-            for k, v in _KAPOOK_BRAND_MAP.items():
-                if k in raw_brand:
-                    brand = v
-                    break
-            if not brand:
-                continue
-            if fill_brands and brand not in fill_brands:
-                continue
-
-            # Get oil rows
-            rows = section.find_all("tr") or section.find_all(class_=re.compile(r"oil.?row|price.?row", re.I))
-            for row in rows:
-                cells = row.find_all(["td", "span"])
-                texts = [c.get_text(strip=True) for c in cells if c.get_text(strip=True)]
-                if len(texts) < 2:
-                    continue
-
-                oil_name_raw = texts[0].lower().strip()
-                family, key = None, None
-                for k, v in _KAPOOK_OIL_MAP.items():
-                    if k in oil_name_raw:
-                        family, key = v
-                        break
-                if not family:
-                    continue
-
-                for t in texts[1:]:
-                    m = re.search(r"(\d+\.\d+)", t.replace(",", ""))
-                    if m:
-                        try:
-                            price = float(m.group(1))
-                            db.add(family, key, brand, texts[0], price)
-                            count += 1
-                        except ValueError:
-                            pass
-                        break
-
-        log.info(f"Kapook     ✓  {count} entries")
-        return count > 0
-
-    except Exception as exc:
-        log.warning(f"Kapook     ✗  {exc}")
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SOURCE 6 — Fallback REST API  (api.chnwt.dev)
-# ══════════════════════════════════════════════════════════════════════════════
-
-def fetch_fallback_api(db: OilData) -> bool:
-    """
-    Community API mirroring EPPO data.
-    Used only when all primary sources fail.
-    """
-    url = "https://api.chnwt.dev/thai-oil-api/latest"
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
+        r = requests.get(_CALTEX_URL, headers=HEADERS, timeout=20)
         r.raise_for_status()
-        data = r.json()
+        r.encoding = "utf-8"
+        soup = BeautifulSoup(r.text, "html.parser")
+        oils: dict = {}
 
-        count = 0
-        for item in data.get("result", {}).get("price", []):
-            oil_name = item.get("name", "")
-            oil_lower = oil_name.lower()
-            family, key = None, None
-            for k, v in _KAPOOK_OIL_MAP.items():
-                if k in oil_lower:
-                    family, key = v
-                    break
-            if not family:
+        # Layout: section ราคา — ชื่อน้ำมันและราคาอยู่ใน structure เดียวกัน
+        # pattern ที่พบ: <img alt="ชื่อน้ำมัน"> + text "BHT 30.55"
+        # หรือ text ที่มี pattern "ชื่อน้ำมัน\n\nBHT xx.xx"
+
+        full_text = soup.get_text("\n", strip=True)
+
+        # หา block ที่มี BHT price
+        lines = [l.strip() for l in full_text.split("\n") if l.strip()]
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            bht_m = re.match(r"^BHT\s+(\d{2,3}\.\d{2})$", line)
+            if bht_m:
+                price = float(bht_m.group(1))
+                # ชื่อน้ำมันอยู่ก่อนหน้า
+                if i > 0:
+                    name = lines[i - 1]
+                    _try_add_caltex_oil(oils, name, price)
+            i += 1
+
+        # fallback: ใช้ alt text ของ img + ราคาถัดไป
+        if not oils:
+            for img in soup.find_all("img", alt=True):
+                alt = img["alt"].strip()
+                if not re.search(r"[\u0E00-\u0E7F]", alt):
+                    continue
+                # หาราคาจาก sibling หรือ next text
+                parent = img.parent
+                if parent:
+                    text_after = parent.get_text(" ", strip=True)
+                    m = re.search(r"(\d{2,3}\.\d{2})", text_after)
+                    if m:
+                        _try_add_caltex_oil(oils, alt, float(m.group(1)))
+
+        log.info(f"  {'✅' if oils else '⚠️ '} Caltex HTML: {len(oils)} รายการ")
+        return oils
+
+    except Exception as e:
+        log.warning(f"  ⚠️  Caltex HTML ล้มเหลว: {e}")
+        return {}
+
+def _try_add_caltex_oil(oils: dict, name: str, price: float):
+    if not name or len(name) < 3:
+        return
+    if not re.search(r"[\u0E00-\u0E7F]|gasohol|diesel|caltex", name, re.I):
+        return
+    if price <= 0 or price > 200:
+        return
+    family, order = get_family(name)
+    key = slugify(name)
+    if key and key not in oils:
+        oils[key] = {"name": name, "price": price, "family": family, "order": order}
+        log.info(f"    ✓ Caltex | {name:38} {price:6.2f} [{family}]")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SOURCE E: Kapook HTML — ข้อมูลจาก EPPO (กระทรวงพลังงาน)
+# URL  : gasprice.kapook.com/gasprice.php
+# ครอบคลุม: PTT, BCP, Shell, Caltex, IRPC, PT, Susco, Pure, Susco Dealers
+# (ตัด Esso ออก — ไม่รวมใน brand map)
+# โครงสร้าง HTML:
+#   <h3>ราคาน้ำมัน Shell (shell)</h3>
+#   <ul>
+#     <li>แก๊สโซฮอล์ 95 <strong>31.85</strong></li>
+#   </ul>
+# ══════════════════════════════════════════════════════════════════════════════
+# URL  : gasprice.kapook.com/gasprice.php
+# ครอบคลุม: PTT, BCP, Shell, Caltex, Esso, IRPC, PT, Susco, Pure, Susco Dealers
+# โครงสร้าง HTML:
+#   <h3>ราคาน้ำมัน Shell (shell)</h3>
+#   <ul>
+#     <li>แก๊สโซฮอล์ 95 <strong>31.85</strong></li>
+#   </ul>
+# ══════════════════════════════════════════════════════════════════════════════
+_KAPOOK_BRAND = {
+    "ptt": "PTT",    "bcp": "BCP",      "shell": "Shell",
+    "caltex": "Caltex",                  "irpc": "IRPC",
+    "pt": "PT",      "susco": "Susco",  "suscodealers": "Susco Dealers",
+    "pure": "Pure",
+    # "esso": ถูกตัดออก
+}
+
+def fetch_kapook() -> dict[str, dict]:
+    """คืน {brand: {oil_key: {...}}} สำหรับทุกแบรนด์ที่ Kapook มี"""
+    log.info("  [Kapook] HTML scrape (EPPO data)...")
+    try:
+        r = requests.get(
+            "http://gasprice.kapook.com/gasprice.php",
+            headers=HEADERS,
+            timeout=25,
+        )
+        r.encoding = "utf-8"
+        soup = BeautifulSoup(r.text, "html.parser")
+        result: dict[str, dict] = {}
+
+        for h3 in soup.find_all("h3"):
+            h3_text = h3.get_text(strip=True)
+            m = re.search(r"\((\w+)\)", h3_text)
+            if not m:
+                continue
+            brand_key = m.group(1).lower()
+            brand = _KAPOOK_BRAND.get(brand_key, brand_key.upper())
+            result[brand] = {}
+
+            ul = h3.find_next_sibling("ul") or h3.find_next("ul")
+            if not ul:
                 continue
 
-            for brand_raw, price_str in item.get("price", {}).items():
-                brand = _KAPOOK_BRAND_MAP.get(brand_raw.lower(), brand_raw)
+            for li in ul.find_all("li"):
+                price_el = li.find(["strong", "em", "b"])
+                if not price_el:
+                    continue
+                price_str = price_el.get_text(strip=True)
+                name = li.get_text(" ", strip=True).replace(price_str, "").strip(" *•-–")
+                if not name:
+                    continue
                 try:
-                    db.add(family, key, brand, oil_name, float(price_str))
-                    count += 1
+                    price = float(price_str.replace(",", "").strip())
+                except ValueError:
+                    continue
+                if price <= 0:
+                    continue
+                family, order = get_family(name)
+                key = slugify(name)
+                result[brand][key] = {
+                    "name": name, "price": price,
+                    "family": family, "order": order,
+                }
+                log.info(f"    ✓ {brand:12} | {name:38} {price:6.2f} [{family}]")
+
+        total = sum(len(v) for v in result.values())
+        log.info(f"  {'✅' if result else '⚠️ '} Kapook: {len(result)} แบรนด์, {total} รายการ")
+        return result
+
+    except Exception as e:
+        log.warning(f"  ⚠️  Kapook ล้มเหลว: {e}")
+        return {}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SOURCE F: chnwt.dev — Fallback สุดท้าย (scrape จาก Kapook เช่นกัน)
+# ══════════════════════════════════════════════════════════════════════════════
+_CHNWT_BRAND = {
+    "ptt": "PTT", "shell": "Shell", "caltex": "Caltex",
+    "esso": "Esso", "bcp": "BCP", "bangchak": "BCP",
+    "pt": "PT", "susco": "Susco", "irpc": "IRPC",
+    "pure": "Pure", "susco_dealers": "Susco Dealers",
+}
+
+def fetch_chnwt() -> dict[str, dict]:
+    log.info("  [chnwt.dev] JSON fallback...")
+    try:
+        r = requests.get(
+            "https://api.chnwt.dev/thai-oil-api/latest",
+            headers=HEADERS,
+            timeout=15,
+        )
+        r.raise_for_status()
+        stations = r.json().get("response", {}).get("stations", {})
+        result: dict[str, dict] = {}
+
+        for bk, oil_dict in stations.items():
+            brand = _CHNWT_BRAND.get(bk.lower(), bk.upper())
+            if not isinstance(oil_dict, dict):
+                continue
+            result[brand] = {}
+            for oil_key, oil_data in oil_dict.items():
+                if isinstance(oil_data, dict):
+                    name = oil_data.get("name", oil_key.replace("_", " "))
+                    price_raw = oil_data.get("price")
+                else:
+                    name, price_raw = oil_key.replace("_", " "), oil_data
+                try:
+                    price = float(str(price_raw).replace(",", ""))
                 except (ValueError, TypeError):
-                    pass
+                    continue
+                if price <= 0:
+                    continue
+                family, order = get_family(name)
+                key = slugify(name)
+                result[brand][key] = {
+                    "name": name, "price": price,
+                    "family": family, "order": order,
+                }
 
-        log.info(f"Fallback   ✓  {count} entries")
-        return count > 0
+        total = sum(len(v) for v in result.values())
+        log.info(f"  {'✅' if result else '❌'} chnwt.dev: {len(result)} แบรนด์, {total} รายการ")
+        return result
 
-    except Exception as exc:
-        log.warning(f"Fallback   ✗  {exc}")
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# ORCHESTRATION
-# ══════════════════════════════════════════════════════════════════════════════
-
-def collect_all_prices() -> OilData:
-    db = OilData()
-
-    log.info("── Fetching official brand sources ──────────────────────────────")
-    ptt_ok  = fetch_ptt(db)
-    bcp_ok  = fetch_bcp(db)
-    shell_ok = fetch_shell(db)
-    caltex_ok = fetch_caltex(db)
-
-    log.info("── Fetching Kapook (IRPC, PT, Susco, Pure, Susco Dealers) ───────")
-    # Only fill brands not covered by official sources
-    secondary_brands = ["IRPC", "PT", "Susco", "Pure", "Susco Dealers"]
-    kapook_ok = fetch_kapook(db, fill_brands=secondary_brands)
-
-    # Also let Kapook fill any brand where official scrape failed
-    missing = []
-    if not ptt_ok:    missing.append("PTT")
-    if not bcp_ok:    missing.append("BCP")
-    if not shell_ok:  missing.append("Shell")
-    if not caltex_ok: missing.append("Caltex")
-    if missing:
-        log.info(f"── Kapook gap-fill for: {missing} ──────────────────────────────")
-        fetch_kapook(db, fill_brands=missing)
-
-    total = sum(
-        len(entries)
-        for oils in db.store.values()
-        for entries in oils.values()
-    )
-
-    if total == 0:
-        log.warning("── All sources failed — trying last-resort fallback API ─────")
-        fetch_fallback_api(db)
-
-    return db
+    except Exception as e:
+        log.warning(f"  ⚠️  chnwt.dev ล้มเหลว: {e}")
+        return {}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PERSIST — JSON
+# ORCHESTRATOR
+# Logic:
+#   1. ดึง Kapook → ได้ทุกแบรนด์เป็น base (ข้อมูล EPPO, ยกเว้น Esso)
+#   2. Override PTT ด้วย SOAP API (ถ้าสำเร็จ)
+#   3. Override BCP ด้วย JSON API (ถ้าสำเร็จ) + ได้ราคาพรุ่งนี้
+#   4. Override Shell ด้วย Official HTML (ถ้าสำเร็จ)
+#   5. Override Caltex ด้วย Official HTML (ถ้าสำเร็จ)
+#   6. ถ้า Kapook ล้มเหลว → fallback chnwt.dev ทั้งหมด
 # ══════════════════════════════════════════════════════════════════════════════
+def get_all_prices() -> dict[str, dict]:
+    log.info("=" * 60)
+    log.info(f"  Thai Oil Price Scraper — {TIMESTAMP}")
+    log.info("=" * 60)
+    log.info("\n📡 Step 1: ดึงข้อมูลฐาน (Kapook / EPPO)")
 
-def save_json(db: OilData) -> None:
-    payload = db.to_json_payload()
+    base = fetch_kapook()
 
-    with open(PRICES_JSON, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-    log.info(f"Saved  {PRICES_JSON}  ({os.path.getsize(PRICES_JSON):,} bytes)")
+    if base:
+        log.info("\n📌 Step 2: Override ด้วย Official APIs / HTML")
 
-    # Rolling 90-day history
+        ptt = fetch_ptt()
+        if ptt:
+            base["PTT"] = ptt
+            log.info(f"  → PTT: ใช้ Official SOAP ({len(ptt)} รายการ)")
+        else:
+            log.info(f"  → PTT: คงข้อมูลจาก Kapook ({len(base.get('PTT', {}))} รายการ)")
+
+        bcp = fetch_bcp()
+        if bcp:
+            base["BCP"] = bcp
+            log.info(f"  → BCP: ใช้ Official JSON ({len(bcp)} รายการ + ราคาพรุ่งนี้)")
+        else:
+            log.info(f"  → BCP: คงข้อมูลจาก Kapook ({len(base.get('BCP', {}))} รายการ)")
+
+        shell = fetch_shell()
+        if shell:
+            base["Shell"] = shell
+            log.info(f"  → Shell: ใช้ Official HTML ({len(shell)} รายการ)")
+        else:
+            log.info(f"  → Shell: คงข้อมูลจาก Kapook ({len(base.get('Shell', {}))} รายการ)")
+
+        caltex = fetch_caltex()
+        if caltex:
+            base["Caltex"] = caltex
+            log.info(f"  → Caltex: ใช้ Official HTML ({len(caltex)} รายการ)")
+        else:
+            log.info(f"  → Caltex: คงข้อมูลจาก Kapook ({len(base.get('Caltex', {}))} รายการ)")
+
+    else:
+        log.warning("\n⚠️  Kapook ล้มเหลว — ใช้ chnwt.dev fallback")
+        base = fetch_chnwt()
+
+        if not base:
+            log.error("❌ ทุก source ล้มเหลว")
+            return {}
+
+        # ตัด Esso ออก
+        base.pop("Esso", None)
+
+        # ยังพยายาม override ด้วย official APIs
+        ptt = fetch_ptt()
+        if ptt:
+            base["PTT"] = ptt
+
+        bcp = fetch_bcp()
+        if bcp:
+            base["BCP"] = bcp
+
+        shell = fetch_shell()
+        if shell:
+            base["Shell"] = shell
+
+        caltex = fetch_caltex()
+        if caltex:
+            base["Caltex"] = caltex
+
+    total = sum(len(v) for v in base.values())
+    log.info(f"\n✅ รวม: {len(base)} แบรนด์, {total} รายการ")
+    return base
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BUILD prices.json
+# โครงสร้าง:
+#   updated, date, brands,
+#   oil_groups: [{family, oils:[{key, entries:{Brand:{name,price,price_tomorrow?}}}]}]
+#   prices: {oil_key: {Brand: price}}  ← backward compat
+# ══════════════════════════════════════════════════════════════════════════════
+def build_output(raw: dict) -> dict:
+    # รวบรวม metadata ของแต่ละ oil_key
+    oil_meta: dict[str, dict] = {}
+    for brand, oils in raw.items():
+        for key, info in oils.items():
+            if key not in oil_meta:
+                oil_meta[key] = {"family": info["family"], "order": info["order"]}
+
+    # จัดกลุ่ม family → oils
+    fam_order: dict[str, int] = {}
+    fam_oils: dict[str, list] = {}
+    for key, meta in oil_meta.items():
+        fam = meta["family"]
+        fam_order.setdefault(fam, meta["order"])
+        fam_oils.setdefault(fam, []).append(key)
+
+    oil_groups = []
+    for fam in sorted(fam_order, key=lambda f: fam_order[f]):
+        group_oils = []
+        for key in sorted(fam_oils[fam]):
+            entries: dict = {}
+            for brand, oils in raw.items():
+                if key in oils:
+                    e: dict = {
+                        "name":  oils[key]["name"],
+                        "price": oils[key]["price"],
+                    }
+                    if "price_tomorrow" in oils[key]:
+                        e["price_tomorrow"] = oils[key]["price_tomorrow"]
+                    entries[brand] = e
+            if entries:
+                group_oils.append({"key": key, "entries": entries})
+        if group_oils:
+            oil_groups.append({"family": fam, "oils": group_oils})
+
+    # flat prices (backward compat)
+    prices_flat = {
+        key: {b: raw[b][key]["price"] for b in raw if key in raw[b]}
+        for key in oil_meta
+    }
+
+    return {
+        "updated":    TIMESTAMP,
+        "date":       TODAY,
+        "brands":     list(raw.keys()),
+        "oil_groups": oil_groups,
+        "prices":     prices_flat,
+    }
+
+
+def save_json(raw: dict):
+    output = build_output(raw)
+
+    # อัปเดต history (เก็บ 90 วัน)
     history: dict = {}
     if os.path.exists(HISTORY_JSON):
-        with open(HISTORY_JSON, encoding="utf-8") as f:
-            try:
+        try:
+            with open(HISTORY_JSON, encoding="utf-8") as f:
                 history = json.load(f)
-            except json.JSONDecodeError:
-                history = {}
+        except Exception:
+            pass
+    history[TODAY] = output["prices"]
+    history = {k: history[k] for k in sorted(history)[-90:]}
 
-    history[TODAY] = payload["prices"]
-    kept = dict(list(sorted(history.items()))[-90:])
-
+    with open(PRICES_JSON, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
     with open(HISTORY_JSON, "w", encoding="utf-8") as f:
-        json.dump(kept, f, ensure_ascii=False, indent=2)
-    log.info(f"Saved  {HISTORY_JSON}  ({len(kept)} days of history)")
+        json.dump(history, f, ensure_ascii=False, indent=2)
+
+    total = sum(len(g["oils"]) for g in output["oil_groups"])
+    log.info(
+        f"\n💾 บันทึก {PRICES_JSON}: "
+        f"{len(output['brands'])} แบรนด์, "
+        f"{total} รายการ, "
+        f"{len(output['oil_groups'])} กลุ่ม"
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PERSIST — Google Sheets  (optional)
+# GOOGLE SHEETS
+# Sheet 1 "ราคาล่าสุด"   — ตารางราคาปัจจุบันทุกแบรนด์ x ทุกประเภท
+# Sheet 2 "ประวัติรายวัน" — append ทุกวัน (date, brand, name, family, price, price_tomorrow)
 # ══════════════════════════════════════════════════════════════════════════════
-
-def save_sheets(db: OilData) -> None:
+def _gsheet_client():
     if not HAS_GSPREAD:
-        log.warning("gspread not installed — skipping Google Sheets")
-        return
-
+        raise ImportError("gspread ไม่ได้ติดตั้ง")
     creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON")
     if not creds_json:
-        log.warning("GOOGLE_CREDENTIALS_JSON not set — skipping Google Sheets")
-        return
+        raise ValueError("ไม่พบ GOOGLE_CREDENTIALS_JSON")
+    return gspread.authorize(
+        Credentials.from_service_account_info(
+            json.loads(creds_json),
+            scopes=[
+                "https://spreadsheets.google.com/feeds",
+                "https://www.googleapis.com/auth/drive",
+            ],
+        )
+    )
 
+def _fmt_header(ws, ncols: int):
     try:
-        creds_dict = json.loads(creds_json)
-        scopes = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        gc    = gspread.authorize(creds)
+        ws.format(f"A1:{chr(64+min(ncols,26))}1", {
+            "backgroundColor": {"red": 0.13, "green": 0.17, "blue": 0.28},
+            "textFormat": {
+                "foregroundColor": {"red": 0.9, "green": 0.75, "blue": 0.2},
+                "bold": True, "fontSize": 11,
+            },
+            "horizontalAlignment": "CENTER",
+        })
+    except Exception:
+        pass
 
+
+def update_sheets(raw: dict):
+    log.info("\n📊 กำลังอัปเดต Google Sheets...")
+    try:
+        gc = _gsheet_client()
         try:
             sh = gc.open(SHEET_NAME)
         except gspread.SpreadsheetNotFound:
             sh = gc.create(SHEET_NAME)
             sh.share(None, perm_type="anyone", role="reader")
-            log.info(f"Created Google Sheet: {SHEET_NAME}")
+            log.info(f"  📋 สร้าง Spreadsheet ใหม่: {SHEET_NAME}")
 
-        _write_latest_sheet(sh, db)
-        _write_history_sheet(sh, db)
-        log.info("Google Sheets updated ✓")
+        output = build_output(raw)
+        brands = output["brands"]
 
-    except Exception as exc:
-        log.warning(f"Google Sheets error: {exc}")
+        # ── Sheet 1: ราคาล่าสุด ─────────────────────────────────────────────
+        try:
+            ws1 = sh.worksheet("ราคาล่าสุด")
+            ws1.clear()
+        except gspread.WorksheetNotFound:
+            ws1 = sh.add_worksheet("ราคาล่าสุด", rows=200, cols=len(brands)+5)
 
+        header = ["กลุ่ม", "ชื่อน้ำมัน"] + brands + ["BCP ราคาพรุ่งนี้", "อัปเดต"]
+        rows = [header]
+        for grp in output["oil_groups"]:
+            for oil in grp["oils"]:
+                # ชื่อน้ำมัน — ใช้จาก brand แรกที่มีข้อมูล
+                display_name = next(
+                    (oil["entries"][b]["name"] for b in brands if b in oil["entries"]),
+                    oil["key"],
+                )
+                row: list = [grp["family"], display_name]
+                for b in brands:
+                    row.append(oil["entries"].get(b, {}).get("price", "—"))
+                row.append(oil["entries"].get("BCP", {}).get("price_tomorrow", "—"))
+                row.append(TIMESTAMP)
+                rows.append(row)
 
-def _write_latest_sheet(sh, db: OilData) -> None:
-    payload = db.to_json_payload()
-    brands  = payload["brands"]
-    groups  = payload["oil_groups"]
+        ws1.update(range_name="A1", values=rows)
+        _fmt_header(ws1, len(header))
+        log.info(f"  ✅ 'ราคาล่าสุด': {len(rows)-1} แถว")
 
-    rows = [["ประเภทน้ำมัน", "ชื่อสินค้า"] + brands + ["อัปเดต"]]
+        # ── Sheet 2: ประวัติรายวัน ───────────────────────────────────────────
+        try:
+            ws2 = sh.worksheet("ประวัติรายวัน")
+        except gspread.WorksheetNotFound:
+            ws2 = sh.add_worksheet("ประวัติรายวัน", rows=5000, cols=8)
+            ws2.update(range_name="A1", values=[[
+                "วันที่", "แบรนด์", "ชื่อน้ำมัน", "กลุ่ม",
+                "ราคาวันนี้", "ราคาพรุ่งนี้", "oil_key", "source",
+            ]])
+            _fmt_header(ws2, 8)
 
-    for grp in groups:
-        for oil in grp["oils"]:
-            entries = oil["entries"]
-            display = next(iter(entries.values()), {}).get("name", oil["key"])
-            row = [grp["family"], display]
-            for b in brands:
-                ent = entries.get(b)
-                row.append(ent["price"] if ent else "—")
-            row.append(TIMESTAMP)
-            rows.append(row)
+        existing_dates = ws2.col_values(1)
+        if TODAY not in existing_dates:
+            new_rows = []
+            for brand, oils in raw.items():
+                for key, info in oils.items():
+                    new_rows.append([
+                        TODAY, brand, info["name"], info["family"],
+                        info["price"],
+                        info.get("price_tomorrow", info["price"]),
+                        key,
+                        "official_api" if brand == "PTT" else
+                        "official_json" if brand == "BCP" else
+                        "official_html" if brand in ("Shell", "Caltex") else
+                        "kapook_eppo",
+                    ])
+            if new_rows:
+                ws2.append_rows(new_rows)
+                log.info(f"  ✅ 'ประวัติรายวัน': เพิ่ม {len(new_rows)} แถว")
+        else:
+            log.info("  ⏭️  ประวัติรายวัน: มีข้อมูลวันนี้แล้ว")
 
-    try:
-        ws = sh.worksheet("ราคาล่าสุด")
-        ws.clear()
-    except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet("ราคาล่าสุด", rows=200, cols=30)
-
-    ws.update("A1", rows)
-    _fmt_header(ws, len(rows[0]))
-
-
-def _write_history_sheet(sh, db: OilData) -> None:
-    payload = db.to_json_payload()
-    brands  = payload["brands"]
-
-    try:
-        ws = sh.worksheet("ประวัติราคา")
-    except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet("ประวัติราคา", rows=1000, cols=50)
-        header = ["วันที่", "ประเภท", "สินค้า"] + brands
-        ws.update("A1", [header])
-        _fmt_header(ws, len(header))
-
-    existing_dates = ws.col_values(1)
-    if TODAY in existing_dates:
-        log.info("History sheet: today already recorded, skipping")
-        return
-
-    new_rows = []
-    for grp in payload["oil_groups"]:
-        for oil in grp["oils"]:
-            entries = oil["entries"]
-            display = next(iter(entries.values()), {}).get("name", oil["key"])
-            row = [TODAY, grp["family"], display]
-            for b in brands:
-                ent = entries.get(b)
-                row.append(ent["price"] if ent else "")
-            new_rows.append(row)
-            time.sleep(0.1)
-
-    if new_rows:
-        ws.append_rows(new_rows)
-
-
-def _fmt_header(ws, cols: int) -> None:
-    try:
-        ws.format(
-            f"A1:{chr(64 + min(cols, 26))}1",
-            {
-                "backgroundColor": {"red": 0.13, "green": 0.17, "blue": 0.28},
-                "textFormat": {
-                    "foregroundColor": {"red": 0.9, "green": 0.75, "blue": 0.2},
-                    "bold": True,
-                    "fontSize": 11,
-                },
-                "horizontalAlignment": "CENTER",
-            },
-        )
-    except Exception:
-        pass
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SUMMARY
-# ══════════════════════════════════════════════════════════════════════════════
-
-def print_summary(db: OilData) -> None:
-    payload = db.to_json_payload()
-    total = sum(len(o["entries"]) for g in payload["oil_groups"] for o in g["oils"])
-
-    log.info("")
-    log.info("═" * 55)
-    log.info(f"  ✅  Collected {total} price entries across {len(payload['brands'])} brands")
-    log.info(f"  📅  Date: {TODAY}   ⏰  {TIMESTAMP[-8:]}")
-    log.info("═" * 55)
-
-    for grp in payload["oil_groups"]:
-        for oil in grp["oils"]:
-            if not oil["entries"]:
-                continue
-            sample = "  ".join(
-                f"{b}: ฿{v['price']:.2f}"
-                for b, v in list(oil["entries"].items())[:4]
-            )
-            label = next(iter(oil["entries"].values()))["name"]
-            log.info(f"  {label:<36} {sample}")
+        log.info("✅ Google Sheets อัปเดตครบ")
+    except Exception as e:
+        log.error(f"❌ Google Sheets error: {e}")
+        raise
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════════════════════
-
-def main() -> None:
-    log.info("═" * 55)
-    log.info(f"  🛢️  Thai Oil Price Scraper  —  {TIMESTAMP}")
-    log.info("═" * 55)
-
-    db = collect_all_prices()
-
-    total = sum(
-        len(entries)
-        for oils in db.store.values()
-        for entries in oils.values()
-    )
-    if total == 0:
-        log.error("No price data collected — aborting")
+def main():
+    raw = get_all_prices()
+    if not raw:
         raise SystemExit(1)
 
-    print_summary(db)
-    save_json(db)
-    save_sheets(db)
+    save_json(raw)
 
-    log.info("")
-    log.info("  🎉  Done!")
+    if HAS_GSPREAD and os.environ.get("GOOGLE_CREDENTIALS_JSON"):
+        update_sheets(raw)
+    else:
+        log.warning("⚠️  ข้าม Google Sheets (ไม่มี gspread หรือ GOOGLE_CREDENTIALS_JSON)")
+
+    log.info("\n🎉 เสร็จสิ้น!")
 
 
 if __name__ == "__main__":
