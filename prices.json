@@ -1,6 +1,6 @@
 {
-  "updated": "2026-04-07 06:47:56",
-  "date": "2026-04-07",
+  "updated": "2026-04-08 06:51:03",
+  "date": "2026-04-08",
   "brands": [
     "PTT",
     "BCP",
@@ -368,6 +368,16 @@
       "family": "diesel_b20",
       "oils": [
         {
+          "key": "diesel_b20",
+          "entries": {
+            "BCP": {
+              "name": "DIESEL B20",
+              "price": 45.54,
+              "price_tomorrow": 45.54
+            }
+          }
+        },
+        {
           "key": "ดีเซล_b20",
           "entries": {
             "PTT": {
@@ -499,11 +509,14 @@
     "ซูเปอร์พาวเวอร์_แก๊สโซฮอล์_95": {
       "PTT": 53.04
     },
-    "hi_premium_diesel_s": {
-      "BCP": 70.94
+    "diesel_b20": {
+      "BCP": 45.54
     },
     "hi_diesel_s": {
       "BCP": 50.54
+    },
+    "hi_premium_diesel_s": {
+      "BCP": 70.94
     },
     "hi_premium_97_gasohol_95": {
       "BCP": 57.54
