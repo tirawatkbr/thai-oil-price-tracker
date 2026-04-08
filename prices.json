@@ -1,6 +1,6 @@
 {
-  "updated": "2026-04-08 06:51:03",
-  "date": "2026-04-08",
+  "updated": "2026-04-09 06:50:30",
+  "date": "2026-04-09",
   "brands": [
     "PTT",
     "BCP",
@@ -26,6 +26,10 @@
             "PT": {
               "name": "เบนซิน 95",
               "price": 53.04
+            },
+            "Susco": {
+              "name": "เบนซิน 95",
+              "price": 52.69
             },
             "Susco Dealers": {
               "name": "เบนซิน 95",
@@ -109,7 +113,7 @@
             },
             "IRPC": {
               "name": "แก๊สโซฮอล์ 95",
-              "price": 43.25
+              "price": 43.95
             },
             "PT": {
               "name": "แก๊สโซฮอล์ 95",
@@ -305,7 +309,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ วี-เพาเวอร์ ดีเซล",
-              "price": 73.84
+              "price": 69.84
             }
           }
         }
@@ -319,7 +323,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ ดีเซล",
-              "price": 50.54
+              "price": 48.4
             }
           }
         }
@@ -333,8 +337,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Premium Diesel S",
-              "price": 70.94,
-              "price_tomorrow": 70.94
+              "price": 68.8,
+              "price_tomorrow": 68.8
             }
           }
         },
@@ -357,8 +361,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Diesel S",
-              "price": 50.54,
-              "price_tomorrow": 50.54
+              "price": 48.4,
+              "price_tomorrow": 48.4
             }
           }
         }
@@ -372,8 +376,8 @@
           "entries": {
             "BCP": {
               "name": "DIESEL B20",
-              "price": 45.54,
-              "price_tomorrow": 45.54
+              "price": 43.4,
+              "price_tomorrow": 43.4
             }
           }
         },
@@ -425,7 +429,7 @@
           "entries": {
             "Caltex": {
               "name": "ดีเซล เทครอน® ดี",
-              "price": 50.54
+              "price": 48.4
             }
           }
         },
@@ -434,7 +438,7 @@
           "entries": {
             "Caltex": {
               "name": "พาวเวอร์ ดีเซล เทครอน® ดี",
-              "price": 70.94
+              "price": 68.8
             }
           }
         }
@@ -458,7 +462,7 @@
   "prices": {
     "แก๊สโซฮอล์_95": {
       "PTT": 43.95,
-      "IRPC": 43.25,
+      "IRPC": 43.95,
       "PT": 43.95,
       "Susco": 43.95,
       "Pure": 43.95,
@@ -486,6 +490,7 @@
     "เบนซิน_95": {
       "PTT": 52.54,
       "PT": 53.04,
+      "Susco": 52.69,
       "Susco Dealers": 52.69
     },
     "แก๊ส_ngv": {
@@ -510,13 +515,13 @@
       "PTT": 53.04
     },
     "diesel_b20": {
-      "BCP": 45.54
+      "BCP": 43.4
     },
     "hi_diesel_s": {
-      "BCP": 50.54
+      "BCP": 48.4
     },
     "hi_premium_diesel_s": {
-      "BCP": 70.94
+      "BCP": 68.8
     },
     "hi_premium_97_gasohol_95": {
       "BCP": 57.54
@@ -546,10 +551,10 @@
       "Shell": 49.84
     },
     "เชลล์_ฟิวเซฟ_ดีเซล": {
-      "Shell": 50.54
+      "Shell": 48.4
     },
     "เชลล์_วี_เพาเวอร์_ดีเซล": {
-      "Shell": 73.84
+      "Shell": 69.84
     },
     "โกลด์_95_เทครอน": {
       "Caltex": 57.51
@@ -561,10 +566,10 @@
       "Caltex": 43.58
     },
     "ดีเซล_เทครอน_ดี": {
-      "Caltex": 50.54
+      "Caltex": 48.4
     },
     "พาวเวอร์_ดีเซล_เทครอน_ดี": {
-      "Caltex": 70.94
+      "Caltex": 68.8
     }
   }
 }
