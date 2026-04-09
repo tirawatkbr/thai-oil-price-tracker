@@ -1,6 +1,6 @@
 {
-  "updated": "2026-04-09 06:50:30",
-  "date": "2026-04-09",
+  "updated": "2026-04-10 06:49:56",
+  "date": "2026-04-10",
   "brands": [
     "PTT",
     "BCP",
@@ -62,21 +62,6 @@
             "Shell": {
               "name": "เชลล์ วี-เพาเวอร์ แก๊สโซฮอล์ 95",
               "price": 49.84
-            }
-          }
-        }
-      ]
-    },
-    {
-      "family": "g95_premium",
-      "oils": [
-        {
-          "key": "hi_premium_97_gasohol_95",
-          "entries": {
-            "BCP": {
-              "name": "Hi Premium 97 Gasohol 95",
-              "price": 57.54,
-              "price_tomorrow": 57.54
             }
           }
         }
@@ -333,10 +318,10 @@
       "family": "diesel_premium",
       "oils": [
         {
-          "key": "hi_premium_diesel_s",
+          "key": "hi_premium_diesel_plus",
           "entries": {
             "BCP": {
-              "name": "Hi Premium Diesel S",
+              "name": "Hi Premium Diesel Plus",
               "price": 68.8,
               "price_tomorrow": 68.8
             }
@@ -347,7 +332,7 @@
           "entries": {
             "PTT": {
               "name": "ดีเซลพรีเมียม",
-              "price": 70.44
+              "price": 68.3
             }
           }
         }
@@ -386,7 +371,7 @@
           "entries": {
             "PTT": {
               "name": "ดีเซล B20",
-              "price": 45.54
+              "price": 43.4
             }
           }
         }
@@ -400,27 +385,27 @@
           "entries": {
             "PTT": {
               "name": "ดีเซล",
-              "price": 50.54
+              "price": 48.4
             },
             "IRPC": {
               "name": "ดีเซล",
-              "price": 50.54
+              "price": 48.4
             },
             "PT": {
               "name": "ดีเซล",
-              "price": 50.54
+              "price": 48.4
             },
             "Susco": {
               "name": "ดีเซล",
-              "price": 50.54
+              "price": 48.4
             },
             "Pure": {
               "name": "ดีเซล",
-              "price": 50.54
+              "price": 48.4
             },
             "Susco Dealers": {
               "name": "ดีเซล",
-              "price": 50.54
+              "price": 48.4
             }
           }
         },
@@ -447,6 +432,16 @@
     {
       "family": "other",
       "oils": [
+        {
+          "key": "hi_premium_98_plus",
+          "entries": {
+            "BCP": {
+              "name": "Hi Premium 98 Plus",
+              "price": 57.54,
+              "price_tomorrow": 57.54
+            }
+          }
+        },
         {
           "key": "โกลด์_95_เทครอน",
           "entries": {
@@ -498,18 +493,18 @@
       "Susco": 19.59
     },
     "ดีเซลพรีเมียม": {
-      "PTT": 70.44
+      "PTT": 68.3
     },
     "ดีเซล": {
-      "PTT": 50.54,
-      "IRPC": 50.54,
-      "PT": 50.54,
-      "Susco": 50.54,
-      "Pure": 50.54,
-      "Susco Dealers": 50.54
+      "PTT": 48.4,
+      "IRPC": 48.4,
+      "PT": 48.4,
+      "Susco": 48.4,
+      "Pure": 48.4,
+      "Susco Dealers": 48.4
     },
     "ดีเซล_b20": {
-      "PTT": 45.54
+      "PTT": 43.4
     },
     "ซูเปอร์พาวเวอร์_แก๊สโซฮอล์_95": {
       "PTT": 53.04
@@ -520,10 +515,10 @@
     "hi_diesel_s": {
       "BCP": 48.4
     },
-    "hi_premium_diesel_s": {
+    "hi_premium_diesel_plus": {
       "BCP": 68.8
     },
-    "hi_premium_97_gasohol_95": {
+    "hi_premium_98_plus": {
       "BCP": 57.54
     },
     "gasohol_e85_s_evo": {
