@@ -1,6 +1,6 @@
 {
-  "updated": "2026-04-23 06:56:13",
-  "date": "2026-04-23",
+  "updated": "2026-04-24 06:57:37",
+  "date": "2026-04-24",
   "brands": [
     "PTT",
     "BCP",
@@ -294,7 +294,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ วี-เพาเวอร์ ดีเซล",
-              "price": 59.84
+              "price": 54.84
             }
           }
         }
@@ -308,7 +308,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ ดีเซล",
-              "price": 41.7
+              "price": 40.2
             }
           }
         }
@@ -322,8 +322,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Premium Diesel Plus",
-              "price": 64.1,
-              "price_tomorrow": 64.1
+              "price": 62.1,
+              "price_tomorrow": 62.1
             }
           }
         },
@@ -350,8 +350,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Diesel S",
-              "price": 41.7,
-              "price_tomorrow": 41.7
+              "price": 40.2,
+              "price_tomorrow": 40.2
             }
           }
         }
@@ -365,8 +365,8 @@
           "entries": {
             "BCP": {
               "name": "DIESEL B20",
-              "price": 34.7,
-              "price_tomorrow": 34.7
+              "price": 33.2,
+              "price_tomorrow": 33.2
             }
           }
         },
@@ -418,7 +418,7 @@
           "entries": {
             "Caltex": {
               "name": "ดีเซล เทครอน® ดี",
-              "price": 41.7
+              "price": 40.2
             }
           }
         },
@@ -427,7 +427,7 @@
           "entries": {
             "Caltex": {
               "name": "พาวเวอร์ ดีเซล เทครอน® ดี",
-              "price": 64.1
+              "price": 62.1
             }
           }
         }
@@ -515,13 +515,13 @@
       "PTT": 51.54
     },
     "diesel_b20": {
-      "BCP": 34.7
+      "BCP": 33.2
     },
     "hi_diesel_s": {
-      "BCP": 41.7
+      "BCP": 40.2
     },
     "hi_premium_diesel_plus": {
-      "BCP": 64.1
+      "BCP": 62.1
     },
     "hi_premium_98_plus": {
       "BCP": 56.04
@@ -551,10 +551,10 @@
       "Shell": 49.84
     },
     "เชลล์_ฟิวเซฟ_ดีเซล": {
-      "Shell": 41.7
+      "Shell": 40.2
     },
     "เชลล์_วี_เพาเวอร์_ดีเซล": {
-      "Shell": 59.84
+      "Shell": 54.84
     },
     "โกลด์_95_เทครอน": {
       "Caltex": 56.01
@@ -566,10 +566,10 @@
       "Caltex": 42.08
     },
     "ดีเซล_เทครอน_ดี": {
-      "Caltex": 41.7
+      "Caltex": 40.2
     },
     "พาวเวอร์_ดีเซล_เทครอน_ดี": {
-      "Caltex": 64.1
+      "Caltex": 62.1
     }
   }
 }
