@@ -1,6 +1,6 @@
 {
-  "updated": "2026-05-07 07:00:03",
-  "date": "2026-05-07",
+  "updated": "2026-05-08 07:02:30",
+  "date": "2026-05-08",
   "brands": [
     "PTT",
     "BCP",
@@ -75,8 +75,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol 95 S EVO",
-              "price": 43.3,
-              "price_tomorrow": 43.3
+              "price": 42.45,
+              "price_tomorrow": 42.45
             }
           }
         },
@@ -85,7 +85,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ แก๊สโซฮอล์ 95",
-              "price": 43.8
+              "price": 42.95
             }
           }
         },
@@ -123,7 +123,7 @@
           "entries": {
             "Caltex": {
               "name": "แก๊สโซฮอล์ 95 เทครอน®",
-              "price": 43.3
+              "price": 42.45
             }
           }
         }
@@ -137,8 +137,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol 91 S EVO",
-              "price": 42.93,
-              "price_tomorrow": 42.93
+              "price": 42.08,
+              "price_tomorrow": 42.08
             }
           }
         },
@@ -147,7 +147,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ แก๊สโซฮอล์ 91",
-              "price": 43.18
+              "price": 42.58
             }
           }
         },
@@ -185,7 +185,7 @@
           "entries": {
             "Caltex": {
               "name": "แก๊สโซฮอล์ 91 เทครอน®",
-              "price": 42.93
+              "price": 42.08
             }
           }
         }
@@ -199,8 +199,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol E20 S EVO",
-              "price": 36.3,
-              "price_tomorrow": 36.3
+              "price": 35.45,
+              "price_tomorrow": 35.45
             }
           }
         },
@@ -209,7 +209,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ แก๊สโซฮอล์ E20",
-              "price": 36.8
+              "price": 35.95
             }
           }
         },
@@ -222,7 +222,7 @@
             },
             "Caltex": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 36.3
+              "price": 35.45
             },
             "PT": {
               "name": "แก๊สโซฮอล์ E20",
@@ -252,8 +252,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol E85 S EVO",
-              "price": 32.24,
-              "price_tomorrow": 32.24
+              "price": 31.39,
+              "price_tomorrow": 31.39
             }
           }
         },
@@ -308,7 +308,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ ดีเซล",
-              "price": 40.8
+              "price": 39.95
             }
           }
         }
@@ -322,8 +322,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Premium Diesel Plus",
-              "price": 62.1,
-              "price_tomorrow": 62.1
+              "price": 61.25,
+              "price_tomorrow": 61.25
             }
           }
         },
@@ -350,8 +350,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Diesel S",
-              "price": 40.8,
-              "price_tomorrow": 40.8
+              "price": 39.95,
+              "price_tomorrow": 39.95
             }
           }
         }
@@ -365,8 +365,8 @@
           "entries": {
             "BCP": {
               "name": "DIESEL B20",
-              "price": 33.8,
-              "price_tomorrow": 33.8
+              "price": 32.95,
+              "price_tomorrow": 32.95
             }
           }
         },
@@ -430,7 +430,7 @@
           "entries": {
             "Caltex": {
               "name": "ดีเซล เทครอน® ดี",
-              "price": 40.8
+              "price": 39.95
             }
           }
         },
@@ -439,7 +439,7 @@
           "entries": {
             "Caltex": {
               "name": "พาวเวอร์ ดีเซล เทครอน® ดี",
-              "price": 62.1
+              "price": 61.25
             }
           }
         }
@@ -453,8 +453,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Premium 98 Plus",
-              "price": 56.04,
-              "price_tomorrow": 56.04
+              "price": 55.09,
+              "price_tomorrow": 55.09
             }
           }
         },
@@ -463,7 +463,7 @@
           "entries": {
             "Caltex": {
               "name": "โกลด์ 95 เทครอน®",
-              "price": 56.01
+              "price": 55.06
             }
           }
         }
@@ -481,7 +481,7 @@
     },
     "แก๊สโซฮอล์_e20": {
       "PTT": 36.3,
-      "Caltex": 36.3,
+      "Caltex": 35.45,
       "PT": 36.3,
       "Susco": 36.3,
       "Pure": 36.3,
@@ -530,61 +530,61 @@
       "PTT": 52.39
     },
     "diesel_b20": {
-      "BCP": 33.8
+      "BCP": 32.95
     },
     "hi_diesel_s": {
-      "BCP": 40.8
+      "BCP": 39.95
     },
     "hi_premium_diesel_plus": {
-      "BCP": 62.1
+      "BCP": 61.25
     },
     "hi_premium_98_plus": {
-      "BCP": 56.04
+      "BCP": 55.09
     },
     "gasohol_e85_s_evo": {
-      "BCP": 32.24
+      "BCP": 31.39
     },
     "gasohol_e20_s_evo": {
-      "BCP": 36.3
+      "BCP": 35.45
     },
     "gasohol_91_s_evo": {
-      "BCP": 42.93
+      "BCP": 42.08
     },
     "gasohol_95_s_evo": {
-      "BCP": 43.3
+      "BCP": 42.45
     },
     "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_e20": {
-      "Shell": 36.8
+      "Shell": 35.95
     },
     "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_91": {
-      "Shell": 43.18
+      "Shell": 42.58
     },
     "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_95": {
-      "Shell": 43.8
+      "Shell": 42.95
     },
     "เชลล์_วี_เพาเวอร์_แก๊สโซฮอล์_95": {
       "Shell": 49.84
     },
     "เชลล์_ฟิวเซฟ_ดีเซล": {
-      "Shell": 40.8
+      "Shell": 39.95
     },
     "เชลล์_วี_เพาเวอร์_ดีเซล": {
       "Shell": 49.84
     },
     "โกลด์_95_เทครอน": {
-      "Caltex": 56.01
+      "Caltex": 55.06
     },
     "แก๊สโซฮอล์_95_เทครอน": {
-      "Caltex": 43.3
+      "Caltex": 42.45
     },
     "แก๊สโซฮอล์_91_เทครอน": {
-      "Caltex": 42.93
+      "Caltex": 42.08
     },
     "ดีเซล_เทครอน_ดี": {
-      "Caltex": 40.8
+      "Caltex": 39.95
     },
     "พาวเวอร์_ดีเซล_เทครอน_ดี": {
-      "Caltex": 62.1
+      "Caltex": 61.25
     }
   }
 }
