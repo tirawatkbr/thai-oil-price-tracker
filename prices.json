@@ -1,6 +1,6 @@
 {
-  "updated": "2026-06-09 07:13:19",
-  "date": "2026-06-09",
+  "updated": "2026-06-10 07:22:28",
+  "date": "2026-06-10",
   "brands": [
     "PTT",
     "BCP",
@@ -371,7 +371,7 @@
           "entries": {
             "PTT": {
               "name": "ดีเซล B20",
-              "price": 35.3
+              "price": 35.8
             },
             "Caltex": {
               "name": "ดีเซล B20",
@@ -379,19 +379,19 @@
             },
             "PT": {
               "name": "ดีเซล B20",
-              "price": 35.3
+              "price": 35.8
             },
             "Susco": {
               "name": "ดีเซล B20",
-              "price": 35.3
+              "price": 35.8
             },
             "Pure": {
               "name": "ดีเซล B20",
-              "price": 35.3
+              "price": 35.8
             },
             "Susco Dealers": {
               "name": "ดีเซล B20",
-              "price": 35.3
+              "price": 35.8
             }
           }
         }
@@ -533,12 +533,12 @@
       "Susco Dealers": 41.3
     },
     "ดีเซล_b20": {
-      "PTT": 35.3,
+      "PTT": 35.8,
       "Caltex": 35.8,
-      "PT": 35.3,
-      "Susco": 35.3,
-      "Pure": 35.3,
-      "Susco Dealers": 35.3
+      "PT": 35.8,
+      "Susco": 35.8,
+      "Pure": 35.8,
+      "Susco Dealers": 35.8
     },
     "ซูเปอร์พาวเวอร์_แก๊สโซฮอล์_95": {
       "PTT": 50.99
