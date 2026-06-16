@@ -1,6 +1,6 @@
 {
-  "updated": "2026-06-15 07:20:38",
-  "date": "2026-06-15",
+  "updated": "2026-06-16 08:44:47",
+  "date": "2026-06-16",
   "brands": [
     "PTT",
     "BCP",
@@ -21,19 +21,19 @@
           "entries": {
             "PTT": {
               "name": "เบนซิน 95",
-              "price": 51.89
+              "price": 50.69
             },
             "PT": {
               "name": "เบนซิน 95",
-              "price": 52.39
+              "price": 51.19
             },
             "Susco": {
               "name": "เบนซิน 95",
-              "price": 52.04
+              "price": 50.84
             },
             "Susco Dealers": {
               "name": "เบนซิน 95",
-              "price": 52.04
+              "price": 50.84
             }
           }
         }
@@ -75,8 +75,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol 95 S EVO",
-              "price": 42.3,
-              "price_tomorrow": 42.3
+              "price": 41.1,
+              "price_tomorrow": 41.1
             }
           }
         },
@@ -85,7 +85,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ แก๊สโซฮอล์ 95",
-              "price": 42.8
+              "price": 41.6
             }
           }
         },
@@ -94,27 +94,27 @@
           "entries": {
             "PTT": {
               "name": "แก๊สโซฮอล์ 95",
-              "price": 42.3
+              "price": 41.1
             },
             "IRPC": {
               "name": "แก๊สโซฮอล์ 95",
-              "price": 42.3
+              "price": 41.1
             },
             "PT": {
               "name": "แก๊สโซฮอล์ 95",
-              "price": 42.3
+              "price": 41.1
             },
             "Susco": {
               "name": "แก๊สโซฮอล์ 95",
-              "price": 42.3
+              "price": 41.1
             },
             "Pure": {
               "name": "แก๊สโซฮอล์ 95",
-              "price": 42.3
+              "price": 41.1
             },
             "Susco Dealers": {
               "name": "แก๊สโซฮอล์ 95",
-              "price": 42.3
+              "price": 41.1
             }
           }
         },
@@ -123,7 +123,7 @@
           "entries": {
             "Caltex": {
               "name": "แก๊สโซฮอล์ 95 เทครอน®",
-              "price": 42.3
+              "price": 41.1
             }
           }
         }
@@ -137,8 +137,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol 91 S EVO",
-              "price": 41.93,
-              "price_tomorrow": 41.93
+              "price": 40.73,
+              "price_tomorrow": 40.73
             }
           }
         },
@@ -147,7 +147,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ แก๊สโซฮอล์ 91",
-              "price": 42.43
+              "price": 41.23
             }
           }
         },
@@ -156,27 +156,27 @@
           "entries": {
             "PTT": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 41.93
+              "price": 40.73
             },
             "IRPC": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 41.93
+              "price": 40.73
             },
             "PT": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 41.93
+              "price": 40.73
             },
             "Susco": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 41.93
+              "price": 40.73
             },
             "Pure": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 41.93
+              "price": 40.73
             },
             "Susco Dealers": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 41.93
+              "price": 40.73
             }
           }
         },
@@ -185,7 +185,7 @@
           "entries": {
             "Caltex": {
               "name": "แก๊สโซฮอล์ 91 เทครอน®",
-              "price": 41.93
+              "price": 40.73
             }
           }
         }
@@ -199,8 +199,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol E20 S EVO",
-              "price": 37.3,
-              "price_tomorrow": 37.3
+              "price": 36.1,
+              "price_tomorrow": 36.1
             }
           }
         },
@@ -209,7 +209,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ แก๊สโซฮอล์ E20",
-              "price": 37.8
+              "price": 36.6
             }
           }
         },
@@ -218,27 +218,27 @@
           "entries": {
             "PTT": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 37.3
+              "price": 36.1
             },
             "Caltex": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 37.3
+              "price": 36.1
             },
             "PT": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 37.3
+              "price": 36.1
             },
             "Susco": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 37.3
+              "price": 36.1
             },
             "Pure": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 37.3
+              "price": 36.1
             },
             "Susco Dealers": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 37.3
+              "price": 36.1
             }
           }
         }
@@ -252,8 +252,8 @@
           "entries": {
             "BCP": {
               "name": "Gasohol E85 S EVO",
-              "price": 33.24,
-              "price_tomorrow": 33.24
+              "price": 32.04,
+              "price_tomorrow": 32.04
             }
           }
         },
@@ -262,7 +262,7 @@
           "entries": {
             "PTT": {
               "name": "แก๊สโซฮอล์ E85",
-              "price": 33.24
+              "price": 32.04
             }
           }
         }
@@ -308,7 +308,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ฟิวเซฟ ดีเซล",
-              "price": 39.8
+              "price": 38.8
             }
           }
         }
@@ -322,8 +322,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Premium Diesel Plus",
-              "price": 55.25,
-              "price_tomorrow": 55.25
+              "price": 54.25,
+              "price_tomorrow": 54.25
             }
           }
         },
@@ -332,7 +332,7 @@
           "entries": {
             "PTT": {
               "name": "ดีเซลพรีเมียม",
-              "price": 55.25
+              "price": 54.25
             }
           }
         }
@@ -346,8 +346,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Diesel S",
-              "price": 39.8,
-              "price_tomorrow": 39.8
+              "price": 38.8,
+              "price_tomorrow": 38.8
             }
           }
         }
@@ -361,8 +361,8 @@
           "entries": {
             "BCP": {
               "name": "DIESEL B20",
-              "price": 34.8,
-              "price_tomorrow": 34.8
+              "price": 33.8,
+              "price_tomorrow": 33.8
             }
           }
         },
@@ -371,27 +371,27 @@
           "entries": {
             "PTT": {
               "name": "ดีเซล B20",
-              "price": 34.8
+              "price": 33.8
             },
             "Caltex": {
               "name": "ดีเซล B20",
-              "price": 34.8
+              "price": 33.8
             },
             "PT": {
               "name": "ดีเซล B20",
-              "price": 34.8
+              "price": 33.8
             },
             "Susco": {
               "name": "ดีเซล B20",
-              "price": 34.8
+              "price": 33.8
             },
             "Pure": {
               "name": "ดีเซล B20",
-              "price": 34.8
+              "price": 33.8
             },
             "Susco Dealers": {
               "name": "ดีเซล B20",
-              "price": 34.8
+              "price": 33.8
             }
           }
         }
@@ -405,27 +405,27 @@
           "entries": {
             "PTT": {
               "name": "ดีเซล",
-              "price": 39.8
+              "price": 38.8
             },
             "IRPC": {
               "name": "ดีเซล",
-              "price": 39.8
+              "price": 38.8
             },
             "PT": {
               "name": "ดีเซล",
-              "price": 39.8
+              "price": 38.8
             },
             "Susco": {
               "name": "ดีเซล",
-              "price": 39.8
+              "price": 38.8
             },
             "Pure": {
               "name": "ดีเซล",
-              "price": 39.8
+              "price": 38.8
             },
             "Susco Dealers": {
               "name": "ดีเซล",
-              "price": 39.8
+              "price": 38.8
             }
           }
         },
@@ -434,7 +434,7 @@
           "entries": {
             "Caltex": {
               "name": "ดีเซล เทครอน® ดี",
-              "price": 39.8
+              "price": 38.8
             }
           }
         },
@@ -443,7 +443,7 @@
           "entries": {
             "Caltex": {
               "name": "พาวเวอร์ ดีเซล เทครอน® ดี",
-              "price": 55.25
+              "price": 54.25
             }
           }
         },
@@ -452,7 +452,7 @@
           "entries": {
             "Shell": {
               "name": "เชลล์ ดีเซล บี20",
-              "price": 34.8
+              "price": 33.8
             }
           }
         }
@@ -485,105 +485,105 @@
   ],
   "prices": {
     "แก๊สโซฮอล์_95": {
-      "PTT": 42.3,
-      "IRPC": 42.3,
-      "PT": 42.3,
-      "Susco": 42.3,
-      "Pure": 42.3,
-      "Susco Dealers": 42.3
+      "PTT": 41.1,
+      "IRPC": 41.1,
+      "PT": 41.1,
+      "Susco": 41.1,
+      "Pure": 41.1,
+      "Susco Dealers": 41.1
     },
     "แก๊สโซฮอล์_e20": {
-      "PTT": 37.3,
-      "Caltex": 37.3,
-      "PT": 37.3,
-      "Susco": 37.3,
-      "Pure": 37.3,
-      "Susco Dealers": 37.3
+      "PTT": 36.1,
+      "Caltex": 36.1,
+      "PT": 36.1,
+      "Susco": 36.1,
+      "Pure": 36.1,
+      "Susco Dealers": 36.1
     },
     "แก๊สโซฮอล์_e85": {
-      "PTT": 33.24
+      "PTT": 32.04
     },
     "แก๊สโซฮอล์_91": {
-      "PTT": 41.93,
-      "IRPC": 41.93,
-      "PT": 41.93,
-      "Susco": 41.93,
-      "Pure": 41.93,
-      "Susco Dealers": 41.93
+      "PTT": 40.73,
+      "IRPC": 40.73,
+      "PT": 40.73,
+      "Susco": 40.73,
+      "Pure": 40.73,
+      "Susco Dealers": 40.73
     },
     "เบนซิน_95": {
-      "PTT": 51.89,
-      "PT": 52.39,
-      "Susco": 52.04,
-      "Susco Dealers": 52.04
+      "PTT": 50.69,
+      "PT": 51.19,
+      "Susco": 50.84,
+      "Susco Dealers": 50.84
     },
     "แก๊ส_ngv": {
       "PTT": 18.0,
       "Susco": 19.59
     },
     "ดีเซลพรีเมียม": {
-      "PTT": 55.25
+      "PTT": 54.25
     },
     "ดีเซล": {
-      "PTT": 39.8,
-      "IRPC": 39.8,
-      "PT": 39.8,
-      "Susco": 39.8,
-      "Pure": 39.8,
-      "Susco Dealers": 39.8
+      "PTT": 38.8,
+      "IRPC": 38.8,
+      "PT": 38.8,
+      "Susco": 38.8,
+      "Pure": 38.8,
+      "Susco Dealers": 38.8
     },
     "ดีเซล_b20": {
-      "PTT": 34.8,
-      "Caltex": 34.8,
-      "PT": 34.8,
-      "Susco": 34.8,
-      "Pure": 34.8,
-      "Susco Dealers": 34.8
+      "PTT": 33.8,
+      "Caltex": 33.8,
+      "PT": 33.8,
+      "Susco": 33.8,
+      "Pure": 33.8,
+      "Susco Dealers": 33.8
     },
     "ซูเปอร์พาวเวอร์_แก๊สโซฮอล์_95": {
       "PTT": 50.99
     },
     "diesel_b20": {
-      "BCP": 34.8
+      "BCP": 33.8
     },
     "hi_diesel_s": {
-      "BCP": 39.8
+      "BCP": 38.8
     },
     "hi_premium_diesel_plus": {
-      "BCP": 55.25
+      "BCP": 54.25
     },
     "hi_premium_98_plus": {
       "BCP": 53.44
     },
     "gasohol_e85_s_evo": {
-      "BCP": 33.24
+      "BCP": 32.04
     },
     "gasohol_e20_s_evo": {
-      "BCP": 37.3
+      "BCP": 36.1
     },
     "gasohol_91_s_evo": {
-      "BCP": 41.93
+      "BCP": 40.73
     },
     "gasohol_95_s_evo": {
-      "BCP": 42.3
+      "BCP": 41.1
     },
     "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_e20": {
-      "Shell": 37.8
+      "Shell": 36.6
     },
     "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_91": {
-      "Shell": 42.43
+      "Shell": 41.23
     },
     "เชลล์_ฟิวเซฟ_แก๊สโซฮอล์_95": {
-      "Shell": 42.8
+      "Shell": 41.6
     },
     "เชลล์_วี_เพาเวอร์_แก๊สโซฮอล์_95": {
       "Shell": 49.84
     },
     "เชลล์_ฟิวเซฟ_ดีเซล": {
-      "Shell": 39.8
+      "Shell": 38.8
     },
     "เชลล์_ดีเซล_บี20": {
-      "Shell": 34.8
+      "Shell": 33.8
     },
     "เชลล์_วี_เพาเวอร์_ดีเซล": {
       "Shell": 49.84
@@ -592,16 +592,16 @@
       "Caltex": 53.41
     },
     "แก๊สโซฮอล์_95_เทครอน": {
-      "Caltex": 42.3
+      "Caltex": 41.1
     },
     "แก๊สโซฮอล์_91_เทครอน": {
-      "Caltex": 41.93
+      "Caltex": 40.73
     },
     "ดีเซล_เทครอน_ดี": {
-      "Caltex": 39.8
+      "Caltex": 38.8
     },
     "พาวเวอร์_ดีเซล_เทครอน_ดี": {
-      "Caltex": 55.25
+      "Caltex": 54.25
     }
   }
 }
