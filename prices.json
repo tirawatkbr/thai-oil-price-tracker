@@ -1,6 +1,6 @@
 {
-  "updated": "2026-06-30 07:16:14",
-  "date": "2026-06-30",
+  "updated": "2026-07-01 07:17:15",
+  "date": "2026-07-01",
   "brands": [
     "PTT",
     "BCP",
@@ -322,8 +322,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Premium Diesel Plus",
-              "price": 54.25,
-              "price_tomorrow": 54.25
+              "price": 49.25,
+              "price_tomorrow": 49.25
             }
           }
         },
@@ -443,7 +443,7 @@
           "entries": {
             "Caltex": {
               "name": "พาวเวอร์ ดีเซล เทครอน® ดี",
-              "price": 54.25
+              "price": 49.25
             }
           }
         },
@@ -466,8 +466,8 @@
           "entries": {
             "BCP": {
               "name": "Hi Premium 98 Plus",
-              "price": 53.44,
-              "price_tomorrow": 53.44
+              "price": 48.44,
+              "price_tomorrow": 48.44
             }
           }
         },
@@ -485,7 +485,7 @@
           "entries": {
             "Caltex": {
               "name": "โกลด์ 95 เทครอน®",
-              "price": 53.41
+              "price": 48.41
             }
           }
         }
@@ -562,10 +562,10 @@
       "BCP": 37.5
     },
     "hi_premium_diesel_plus": {
-      "BCP": 54.25
+      "BCP": 49.25
     },
     "hi_premium_98_plus": {
-      "BCP": 53.44
+      "BCP": 48.44
     },
     "gasohol_e85_s_evo": {
       "BCP": 28.99
@@ -601,7 +601,7 @@
       "Shell": 49.84
     },
     "โกลด์_95_เทครอน": {
-      "Caltex": 53.41
+      "Caltex": 48.41
     },
     "แก๊สโซฮอล์_95_เทครอน": {
       "Caltex": 38.05
@@ -613,7 +613,7 @@
       "Caltex": 37.5
     },
     "พาวเวอร์_ดีเซล_เทครอน_ดี": {
-      "Caltex": 54.25
+      "Caltex": 49.25
     }
   }
 }
