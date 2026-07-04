@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-03 07:16:08",
-  "date": "2026-07-03",
+  "updated": "2026-07-04 07:14:45",
+  "date": "2026-07-04",
   "brands": [
     "PTT",
     "BCP",
@@ -21,19 +21,19 @@
           "entries": {
             "PTT": {
               "name": "เบนซิน 95",
-              "price": 47.64
+              "price": 46.44
             },
             "PT": {
               "name": "เบนซิน 95",
-              "price": 48.14
+              "price": 46.94
             },
             "Susco": {
               "name": "เบนซิน 95",
-              "price": 47.79
+              "price": 46.59
             },
             "Susco Dealers": {
               "name": "เบนซิน 95",
-              "price": 47.79
+              "price": 46.59
             }
           }
         }
@@ -156,27 +156,27 @@
           "entries": {
             "PTT": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 37.68
+              "price": 37.08
             },
             "IRPC": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 37.68
+              "price": 37.08
             },
             "PT": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 37.68
+              "price": 37.08
             },
             "Susco": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 37.68
+              "price": 37.08
             },
             "Pure": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 37.68
+              "price": 37.08
             },
             "Susco Dealers": {
               "name": "แก๊สโซฮอล์ 91",
-              "price": 37.68
+              "price": 37.08
             }
           }
         },
@@ -218,7 +218,7 @@
           "entries": {
             "PTT": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 33.05
+              "price": 32.45
             },
             "Caltex": {
               "name": "แก๊สโซฮอล์ E20",
@@ -226,19 +226,19 @@
             },
             "PT": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 33.05
+              "price": 32.45
             },
             "Susco": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 33.05
+              "price": 32.45
             },
             "Pure": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 33.05
+              "price": 32.45
             },
             "Susco Dealers": {
               "name": "แก๊สโซฮอล์ E20",
-              "price": 33.05
+              "price": 32.45
             }
           }
         }
@@ -262,7 +262,7 @@
           "entries": {
             "PTT": {
               "name": "แก๊สโซฮอล์ E85",
-              "price": 28.99
+              "price": 28.39
             }
           }
         }
@@ -502,29 +502,29 @@
       "Susco Dealers": 37.45
     },
     "แก๊สโซฮอล์_e20": {
-      "PTT": 33.05,
+      "PTT": 32.45,
       "Caltex": 32.45,
-      "PT": 33.05,
-      "Susco": 33.05,
-      "Pure": 33.05,
-      "Susco Dealers": 33.05
+      "PT": 32.45,
+      "Susco": 32.45,
+      "Pure": 32.45,
+      "Susco Dealers": 32.45
     },
     "แก๊สโซฮอล์_e85": {
-      "PTT": 28.99
+      "PTT": 28.39
     },
     "แก๊สโซฮอล์_91": {
-      "PTT": 37.68,
-      "IRPC": 37.68,
-      "PT": 37.68,
-      "Susco": 37.68,
-      "Pure": 37.68,
-      "Susco Dealers": 37.68
+      "PTT": 37.08,
+      "IRPC": 37.08,
+      "PT": 37.08,
+      "Susco": 37.08,
+      "Pure": 37.08,
+      "Susco Dealers": 37.08
     },
     "เบนซิน_95": {
-      "PTT": 47.64,
-      "PT": 48.14,
-      "Susco": 47.79,
-      "Susco Dealers": 47.79
+      "PTT": 46.44,
+      "PT": 46.94,
+      "Susco": 46.59,
+      "Susco Dealers": 46.59
     },
     "แก๊ส_ngv": {
       "PTT": 19.0,
